@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+/* Configuração de Tema CSS-First nativa do Tailwind CSS v4 */
+@theme {
+  --color-romantic-50: #fff5f6;
+  --color-romantic-100: #ffebeb;
+  --color-romantic-200: #ffced5;
+  --color-romantic-300: #ffa1ae;
+  --color-romantic-400: #ff697e;
+  --color-romantic-500: #f43f5e; /* Rose Principal */
+  --color-romantic-600: #e11d48;
+  --color-romantic-700: #be123c;
+  --color-romantic-cream: #fffdfa;
+  --color-romantic-ivory: #faf6f0;
+  --color-romantic-gold: #dfb76c;
+  --color-romantic-bronze: #8c6d31;
+
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-cursive: "Dancing Script", "Great Vibes", cursive;
+
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-float-slow: float 6s ease-in-out infinite;
+  --animate-float-medium: float 4s ease-in-out infinite;
+  --animate-heart-beat: heartBeat 1.5s ease-in-out infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(2deg); }
+  }
+  @keyframes heartBeat {
+    0%, 100% { transform: scale(1); }
+    25% { transform: scale(1.1); }
+    40% { transform: scale(1.05); }
+    60% { transform: scale(1.15); }
+  }
+}
+
+/* Comportamento de Rolagem Suave Global */
+html {
+  scroll-behavior: smooth;
+  height: -webkit-fill-available; /* Ajuste de tela inteira para iOS Safari */
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  min-height: -webkit-fill-available;
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
+  background-color: #faf6f0; /* Tom marfim */
+  color: #1f2937; /* gray-800 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  overscroll-behavior-y: none;
+}
+
+/* Classes utilitárias para áreas seguras do iPhone */
+.safe-pb {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+.safe-pt {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Personalização da barra de rolagem */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(244, 63, 94, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(244, 63, 94, 0.4);
+}

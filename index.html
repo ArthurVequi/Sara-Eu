@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Ícone padrão da aba -->
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+    
+    <!-- Configurações Cruciais para iPhone e Dispositivos Móveis -->
+    <meta 
+      name="viewport" 
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" 
+    />
+    
+    <!-- Meta tags específicas para rodar como App Nativo no iOS (PWA) -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Sara&Eu" />
+    
+    <!-- Link para o Ícone que aparecerá na Tela de Início do iPhone -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    
+    <title>Sara&Eu ❤️</title>
+
+    <!-- Fontes do Google Fonts: Playfair Display (Serif Elegante), Plus Jakarta Sans (Sans-serif Moderno) e Dancing Script (Cursiva Romântica) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link 
+      href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" 
+      rel="stylesheet" 
+    />
+
+    <!-- Correções específicas para iOS e Safe Areas na barra de rolagem -->
+    <style>
+      body {
+        padding-top: env(safe-area-inset-top, 0px);
+        background-color: #faf6f0; /* Garante que não haja flashes de tela branca */
+      }
+      /* Remove o realce cinza chato ao clicar em elementos interativos no iOS */
+      * {
+        -webkit-tap-highlight-color: transparent;
+      }
+    </style>
+  </head>
+  <body class="h-full antialiased overflow-x-hidden">
+    <div id="root" class="h-full"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
