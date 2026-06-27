@@ -10,6 +10,7 @@ const moodLabels = {
   triste: '😢 Triste',
   apaixonado: '😍 Apaixonado',
   saudade: '🥺 Saudade',
+  irritado: '😤 Irritado',
 };
 
 export default function MoodEditor({ isOpen, onClose, currentMoods, user, onSaveLocally }) {
@@ -29,13 +30,7 @@ export default function MoodEditor({ isOpen, onClose, currentMoods, user, onSave
   const handleChange = (key, value) => {
     const newVal = parseInt(value) || 0;
     
-    // Simplest logic to ensure sum is 100: we adjust the others proportionally if we exceed 100
-    // Actually, even simpler: just let them move, but show a warning if != 100, or auto-balance.
-    // Let's use auto-balance on a specific "filler" mood, or just let them adjust until it hits 100.
-    
-    // For a premium feel, let's just update the value and if it exceeds 100, subtract from others.
-    let diff = newVal - moods[key];
-    
+    let diff = newVal - (moods[key] || 0);
     if (diff === 0) return;
 
     let newMoods = { ...moods };
@@ -45,7 +40,6 @@ export default function MoodEditor({ isOpen, onClose, currentMoods, user, onSave
     
     if (total + diff > 100) {
       let overage = (total + diff) - 100;
-      // Subtract overage from other keys
       for (let k of remainingKeys) {
         if (overage <= 0) break;
         if (newMoods[k] >= overage) {
@@ -56,7 +50,6 @@ export default function MoodEditor({ isOpen, onClose, currentMoods, user, onSave
           newMoods[k] = 0;
         }
       }
-      // Se ainda sobrar overage, força o key atual a não passar do limite disponível
       if (overage > 0) {
         newMoods[key] -= overage;
       }
@@ -95,7 +88,6 @@ export default function MoodEditor({ isOpen, onClose, currentMoods, user, onSave
       onClose();
     } catch (err) {
       console.error('Erro ao salvar humor:', err);
-      // Fallback para estado local apenas
       onSaveLocally(moods);
       onClose();
     } finally {
@@ -122,25 +114,37 @@ export default function MoodEditor({ isOpen, onClose, currentMoods, user, onSave
 
           <div className="p-6 overflow-y-auto flex-1 space-y-6">
             <div className="flex justify-center transform scale-75 origin-top h-32 mb-4">
-              {/* Preview do Pet */}
               <Pet name="Preview" moods={moods} />
             </div>
 
             <div className="space-y-4">
-              {Object.keys(moods).map((key) => (
+              {Object.keys(moodLabels).map((key) => (
                 <div key={key} className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="font-sans text-sm font-semibold text-gray-700">{moodLabels[key]}</span>
-                    <span className="font-sans text-sm font-bold text-rose-500">{moods[key]}%</span>
+                    <span className="font-sans text-sm font-bold text-rose-500">{moods[key] || 0}%</span>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={moods[key]}
-                    onChange={(e) => handleChange(key, e.target.value)}
-                    className="w-full h-2 bg-rose-100 rounded-lg appearance-none cursor-pointer accent-rose-500"
-                  />
+                  <div className="flex justify-between gap-1 w-full">
+                    {[...Array(10)].map((_, i) => {
+                      const val = (i + 1) * 10;
+                      const isFilled = val <= (moods[key] || 0);
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            if (moods[key] === val) {
+                              handleChange(key, val - 10);
+                            } else {
+                              handleChange(key, val);
+                            }
+                          }}
+                          className={`flex-1 h-3 rounded-full transition-colors duration-200 focus:outline-none ${
+                            isFilled ? 'bg-rose-500' : 'bg-rose-100'
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>

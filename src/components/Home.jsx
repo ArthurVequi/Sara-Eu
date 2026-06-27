@@ -8,7 +8,7 @@ import MoodEditor from './pets/MoodEditor';
 import PartnerMoodViewer from './pets/PartnerMoodViewer';
 import { Edit3 } from 'lucide-react';
 
-const defaultMoods = { feliz: 100, cansado: 0, triste: 0, apaixonado: 0, saudade: 0 };
+const defaultMoods = { feliz: 100, cansado: 0, triste: 0, apaixonado: 0, saudade: 0, irritado: 0 };
 
 export default function Home({ onModalStateChange }) {
   const { currentUser, partner } = useAuth();

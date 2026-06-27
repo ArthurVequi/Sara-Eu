@@ -8,6 +8,7 @@ const moodLabels = {
   triste: '😢 Triste',
   apaixonado: '😍 Apaixonado',
   saudade: '🥺 Saudade',
+  irritado: '😤 Irritado',
 };
 
 const moodBarColors = {
@@ -16,6 +17,7 @@ const moodBarColors = {
   triste: 'bg-sky-400',
   apaixonado: 'bg-rose-400',
   saudade: 'bg-purple-400',
+  irritado: 'bg-red-500',
 };
 
 export default function PartnerMoodViewer({ isOpen, onClose, moods, partnerName }) {
@@ -55,34 +57,43 @@ export default function PartnerMoodViewer({ isOpen, onClose, moods, partnerName 
             </div>
 
             {/* Mood percentages */}
-            <div className="space-y-3">
-              {sortedMoods.map(([key, value]) => (
-                <motion.div
-                  key={key}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: sortedMoods.findIndex(([k]) => k === key) * 0.08 }}
-                  className="space-y-1.5"
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="font-sans text-sm font-semibold text-gray-700">
-                      {moodLabels[key]}
-                    </span>
-                    <span className="font-sans text-sm font-bold text-rose-500">
-                      {value}%
-                    </span>
-                  </div>
-                  {/* Barra visual (somente leitura) */}
-                  <div className="w-full h-2.5 bg-rose-100/60 rounded-full overflow-hidden">
-                    <motion.div
-                      className={`h-full rounded-full ${moodBarColors[key] || 'bg-rose-400'}`}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${value}%` }}
-                      transition={{ duration: 0.6, delay: sortedMoods.findIndex(([k]) => k === key) * 0.08, ease: "easeOut" }}
-                    />
-                  </div>
-                </motion.div>
-              ))}
+            <div className="space-y-4">
+              {sortedMoods.map(([key, value]) => {
+                const filledDots = Math.round(value / 10);
+                
+                return (
+                  <motion.div
+                    key={key}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: sortedMoods.findIndex(([k]) => k === key) * 0.08 }}
+                    className="space-y-2"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-sans text-sm font-semibold text-gray-700">
+                        {moodLabels[key]}
+                      </span>
+                      <span className="font-sans text-sm font-bold text-rose-500">
+                        {value}%
+                      </span>
+                    </div>
+                    {/* Barra visual em pontinhos (10 pontos = 100%) */}
+                    <div className="flex justify-between gap-1 w-full">
+                      {[...Array(10)].map((_, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: sortedMoods.findIndex(([k]) => k === key) * 0.08 + (i * 0.02) }}
+                          className={`flex-1 h-2.5 rounded-full transition-colors duration-300 ${
+                            i < filledDots ? (moodBarColors[key] || 'bg-rose-400') : 'bg-rose-100/60'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
 
