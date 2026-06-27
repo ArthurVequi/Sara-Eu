@@ -5,15 +5,23 @@ import { supabase } from '../lib/supabaseClient';
 import Pet from './pets/Pet';
 import PetInteractions from './pets/PetInteractions';
 import MoodEditor from './pets/MoodEditor';
+import PartnerMoodViewer from './pets/PartnerMoodViewer';
 import { Edit3 } from 'lucide-react';
 
 const defaultMoods = { feliz: 100, cansado: 0, triste: 0, apaixonado: 0, saudade: 0 };
 
-export default function Home() {
+export default function Home({ onModalStateChange }) {
   const { currentUser, partner } = useAuth();
   const [myMoods, setMyMoods] = useState(defaultMoods);
   const [partnerMoods, setPartnerMoods] = useState(defaultMoods);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isPartnerViewerOpen, setIsPartnerViewerOpen] = useState(false);
+
+  useEffect(() => {
+    if (onModalStateChange) {
+      onModalStateChange(isEditorOpen || isPartnerViewerOpen);
+    }
+  }, [isEditorOpen, isPartnerViewerOpen, onModalStateChange]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -119,7 +127,10 @@ export default function Home() {
           </div>
 
           {/* Pet do Parceiro */}
-          <div className="flex flex-col items-center">
+          <div 
+            className="flex flex-col items-center cursor-pointer transition-transform hover:scale-105"
+            onClick={() => setIsPartnerViewerOpen(true)}
+          >
             <Pet name={partner?.name || '...'} moods={partnerMoods} isFlipped={true} />
             <div className="mt-4 px-4 py-2 bg-transparent text-gray-400 rounded-full text-xs font-semibold tracking-wider flex items-center gap-1.5">
               <div className={`w-2 h-2 rounded-full ${partner?.is_online ? 'bg-green-400 animate-pulse' : 'bg-gray-300'}`} />
@@ -136,6 +147,13 @@ export default function Home() {
         currentMoods={myMoods}
         user={currentUser}
         onSaveLocally={(newMoods) => setMyMoods(newMoods)}
+      />
+
+      <PartnerMoodViewer 
+        isOpen={isPartnerViewerOpen}
+        onClose={() => setIsPartnerViewerOpen(false)}
+        moods={partnerMoods}
+        partnerName={partner?.name || 'Parceiro'}
       />
     </div>
   );

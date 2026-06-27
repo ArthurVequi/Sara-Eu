@@ -16,6 +16,7 @@ import { LogOut } from 'lucide-react';
 function MainApp() {
   const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState('home');
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { currentUser, loading, logout } = useAuth();
 
   if (loading) {
@@ -33,7 +34,7 @@ function MainApp() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'home':
-        return <Home />;
+        return <Home onModalStateChange={setIsModalOpen} />;
       case 'history':
         return <Timeline data={coupleData} />;
       case 'photos':
@@ -43,7 +44,7 @@ function MainApp() {
       case 'invitation':
         return <Invitation data={coupleData} />;
       default:
-        return <Home />;
+        return <Home onModalStateChange={setIsModalOpen} />;
     }
   };
 
@@ -94,7 +95,7 @@ function MainApp() {
         </motion.main>
       )}
 
-      {!showSplash && (
+      {!showSplash && !isModalOpen && (
         <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
       )}
 
