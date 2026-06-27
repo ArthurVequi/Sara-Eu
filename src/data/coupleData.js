@@ -93,7 +93,7 @@ export const coupleData = {
     }
   ],
   "invitation": {
-    "imageUrl": "/invitation_template.jpg",
+    "imageUrl": "/invitation_template.jpg.png",
     "cardTitle": "Jantar Romântico 💌",
     "message": "Tatinha, veio por meio desse te convidar pro pra um jantar, dia 04/07 às 21hrs, se arruma bem bonita que eu vou passar pra te buscar",
     "buttonText": "Aceitar ❤️",
