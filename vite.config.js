@@ -42,5 +42,18 @@ export default defineConfig({
   server: {
     host: true, // Permite abrir o app no celular usando o IP do seu computador
     port: 3000
+  },
+  build: {
+    chunkSizeWarningLimit: 1500, // Aumenta o limite de aviso para 1.5MB
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separa bibliotecas grandes em seus próprios arquivos (chunks)
+          vendor: ['react', 'react-dom'],
+          framer: ['framer-motion'],
+          lucide: ['lucide-react']
+        }
+      }
+    }
   }
 })

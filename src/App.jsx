@@ -40,7 +40,7 @@ function MainApp() {
       case 'photos':
         return <Gallery data={coupleData} />;
       case 'mail':
-        return <LoveMail />;
+        return <LoveMail onModalStateChange={setIsModalOpen} />;
       case 'invitation':
         return <Invitation data={coupleData} />;
       default:

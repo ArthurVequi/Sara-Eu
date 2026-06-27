@@ -7,7 +7,7 @@ import Envelope from './mail/Envelope';
 import LetterView from './mail/LetterView';
 import ComposeLetterModal from './mail/ComposeLetterModal';
 
-export default function LoveMail() {
+export default function LoveMail({ onModalStateChange }) {
   const { currentUser, partner } = useAuth();
   const [activeTab, setActiveTab] = useState('received'); // 'received' | 'sent'
   const [letters, setLetters] = useState([]);
@@ -15,6 +15,12 @@ export default function LoveMail() {
   
   const [selectedLetter, setSelectedLetter] = useState(null);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
+
+  useEffect(() => {
+    if (onModalStateChange) {
+      onModalStateChange(isComposeOpen || !!selectedLetter);
+    }
+  }, [isComposeOpen, selectedLetter, onModalStateChange]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -146,6 +152,7 @@ export default function LoveMail() {
           letter={selectedLetter} 
           onClose={() => setSelectedLetter(null)}
           isReceived={selectedLetter.receiver_id === currentUser.id}
+          senderName={selectedLetter.sender_id === currentUser.id ? currentUser.user_metadata?.name || currentUser.name || 'Você' : partner?.name || 'Seu Amor'}
         />
       )}
 

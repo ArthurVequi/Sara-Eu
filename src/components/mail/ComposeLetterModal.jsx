@@ -105,14 +105,15 @@ export default function ComposeLetterModal({ isOpen, onClose, user, partner, onS
                   className="flex-1 overflow-y-auto p-4 bg-[#fcf9f2]"
                   style={{
                     backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, #e5e0d8 31px, #e5e0d8 32px)',
-                    backgroundPosition: '0 8px'
+                    backgroundAttachment: 'local',
+                    backgroundPosition: '0 -4px' // Ajuste fino para alinhar a fonte com a linha
                   }}
                 >
                   <textarea
                     placeholder="Escreva algo especial aqui..."
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    className="w-full h-full font-cursive text-xl md:text-2xl leading-[32px] bg-transparent outline-none resize-none placeholder:text-gray-400/60 text-gray-700"
+                    className="w-full h-full font-cursive text-xl md:text-2xl leading-[32px] bg-transparent outline-none resize-none placeholder:text-gray-400/60 text-gray-700 pt-1"
                     required
                   />
                 </div>
