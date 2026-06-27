@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Analytics } from '@vercel/analytics/react';
 import Splash from './components/Splash';
 import HeartParticles from './components/HeartParticles';
 import Navbar from './components/Navbar';
@@ -77,6 +78,9 @@ export default function App() {
       {!showSplash && (
         <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
       )}
+
+      {/* Vercel Web Analytics */}
+      <Analytics />
     </div>
   );
 }
