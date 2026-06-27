@@ -47,11 +47,13 @@ export default defineConfig({
     chunkSizeWarningLimit: 1500, // Aumenta o limite de aviso para 1.5MB
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Separa bibliotecas grandes em seus próprios arquivos (chunks)
-          vendor: ['react', 'react-dom'],
-          framer: ['framer-motion'],
-          lucide: ['lucide-react']
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('framer-motion')) return 'framer';
+            if (id.includes('lucide-react')) return 'lucide';
+            if (id.includes('react') || id.includes('react-dom')) return 'vendor';
+            return 'vendor-all';
+          }
         }
       }
     }
