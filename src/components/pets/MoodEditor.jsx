@@ -25,46 +25,15 @@ export default function MoodEditor({ isOpen, onClose, currentMoods, user, onSave
 
   if (!isOpen) return null;
 
-  const total = Object.values(moods).reduce((a, b) => a + b, 0);
-
   const handleChange = (key, value) => {
     const newVal = parseInt(value) || 0;
-    
-    let diff = newVal - (moods[key] || 0);
-    if (diff === 0) return;
-
-    let newMoods = { ...moods };
-    newMoods[key] = newVal;
-
-    let remainingKeys = Object.keys(newMoods).filter(k => k !== key && newMoods[k] > 0);
-    
-    if (total + diff > 100) {
-      let overage = (total + diff) - 100;
-      for (let k of remainingKeys) {
-        if (overage <= 0) break;
-        if (newMoods[k] >= overage) {
-          newMoods[k] -= overage;
-          overage = 0;
-        } else {
-          overage -= newMoods[k];
-          newMoods[k] = 0;
-        }
-      }
-      if (overage > 0) {
-        newMoods[key] -= overage;
-      }
-    }
-
-    setMoods(newMoods);
+    setMoods(prev => ({
+      ...prev,
+      [key]: newVal
+    }));
   };
 
   const handleSave = async () => {
-    const currentTotal = Object.values(moods).reduce((a, b) => a + b, 0);
-    if (currentTotal !== 100) {
-      alert('A soma das porcentagens deve ser exatamente 100%.');
-      return;
-    }
-
     setIsSaving(true);
     
     try {
@@ -151,16 +120,10 @@ export default function MoodEditor({ isOpen, onClose, currentMoods, user, onSave
           </div>
 
           <div className="p-4 border-t border-rose-100 bg-white">
-            <div className="flex justify-between items-center mb-4 px-2">
-              <span className="text-sm font-medium text-gray-500">Total:</span>
-              <span className={`text-lg font-bold ${total === 100 ? 'text-green-500' : 'text-rose-500'}`}>
-                {total}%
-              </span>
-            </div>
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={handleSave}
-              disabled={isSaving || total !== 100}
+              disabled={isSaving}
               className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold text-sm tracking-widest uppercase shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale transition-all"
             >
               {isSaving ? (
