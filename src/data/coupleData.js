@@ -11,10 +11,10 @@ export const coupleData = {
     "appTitle": "Sara&Eu ❤️"
   },
   "startDate": {
-    "year": 2024,
-    "month": 5,
-    "day": 12,
-    "hour": 20,
+    "year": 2025,
+    "month": 11,
+    "day": 20,
+    "hour": 0,
     "minute": 0,
     "second": 0
   },
