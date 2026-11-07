@@ -1,16 +1,38 @@
-# React + Vite
+# Organiza Aí
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Execute `npm ci` e `npm run dev` para abrir a demonstração local com dados fictícios.
+`npm run build` valida TypeScript e gera a PWA. `npm run preview` serve o resultado.
 
-Currently, two official plugins are available:
+## Configuração na Vercel
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Use um projeto Vercel novo com preset Vite. Cadastre as variáveis abaixo na Vercel.
+As variáveis sem prefixo `VITE_` são exclusivas do servidor. Não coloque tokens no Git.
 
-## React Compiler
+- `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` para o envio agendado
+- `CRON_SECRET` para autenticar o cron
+- `VITE_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` para Web Push
+- `DRIVE_CLIENT_ID`, `DRIVE_CLIENT_SECRET`, `DRIVE_REFRESH_TOKEN` e `DRIVE_STUDIES_FOLDER_ID`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+No Supabase, aplique `supabase/schema.sql` a um projeto novo, configure a URL da Vercel
+como URL de retorno do Auth, configure SMTP e crie os dois usuários autorizados.
+Inclua o UUID de cada um em `public.organiza_members`. Ambos editam o mesmo espaço.
+O primeiro acesso exige internet e usa um link por e-mail. A demonstração e o espaço
+compartilhado usam bancos locais separados.
 
-## Expanding the Oxlint configuration
+Para o Drive, autorize o aplicativo OAuth com a conta antigravidade72@gmail.com
+e configure a pasta Estudos dentro de Organiza Aí. A pasta configurada precisa estar
+acessível ao mesmo cliente OAuth. As pastas por matéria são criadas ao acessar seus
+arquivos depois da primeira sincronização. A integração atual aceita envios de até
+3 MB por arquivo, otimiza JPEG, PNG e WebP quando possível e preserva os demais formatos.
+O visualizador abre imagens compatíveis, PDF e vídeo MP4/WebM. Outros formatos podem ser baixados.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+O cron está configurado para 07h na Argentina. Ative o lembrete em cada aparelho
+depois de instalar a PWA. A precisão depende do plano da Vercel. No iPhone, abra
+pela tela de início antes de ativar. O toque abre a agenda do dia.
+
+## Antes de usar com dados reais
+
+Valide acesso com os dois usuários, funcionamento em modo avião, conflito entre
+aparelhos, uploads e recebimento de push em iPhone e Android. A integração de
+arquivos grandes, conversão de vídeos e fila de arquivos offline ainda está pendente.
