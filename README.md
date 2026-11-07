@@ -12,7 +12,7 @@ As variáveis sem prefixo `VITE_` são exclusivas do servidor. Não coloque toke
 - `SUPABASE_SERVICE_ROLE_KEY` para o envio agendado
 - `CRON_SECRET` para autenticar o cron
 - `VITE_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` para Web Push
-- `DRIVE_CLIENT_ID`, `DRIVE_CLIENT_SECRET`, `DRIVE_REFRESH_TOKEN` e `DRIVE_STUDIES_FOLDER_ID`
+- `DRIVE_CLIENT_ID`, `DRIVE_CLIENT_SECRET` e `DRIVE_REFRESH_TOKEN`
 
 Em um Supabase novo, aplique `supabase/schema.sql` e depois `supabase/public-access.sql`.
 O CoupleSA já recebeu essa migração. O app abre direto, sem login ou perfis.
@@ -20,9 +20,12 @@ O espaço é público: qualquer pessoa pode ler e editar os registros compartilh
 inclusive pela API. Os arquivos das matérias também ficam acessíveis pelo app.
 A demonstração e o espaço compartilhado usam bancos locais separados.
 
-Para o Drive, autorize o aplicativo OAuth com a conta antigravidade72@gmail.com
-e configure a pasta Estudos dentro de Organiza Aí. A pasta configurada precisa estar
-acessível ao mesmo cliente OAuth. As pastas por matéria são criadas ao acessar seus
+Para o Drive, habilite a Google Drive API, crie um cliente OAuth e autorize com a
+conta antigravidade73@gmail.com e o escopo `https://www.googleapis.com/auth/drive.file`.
+Cadastre o ID, o segredo e o refresh token na Vercel em Production. O app cria
+`Organiza Aí - Estudos` no primeiro uso. Opcionalmente, configure
+`DRIVE_STUDIES_FOLDER_ID` com uma pasta já acessível ao mesmo cliente OAuth.
+As pastas por matéria são criadas ao acessar seus
 arquivos depois da primeira sincronização. A integração atual aceita envios de até
 3 MB por arquivo, otimiza JPEG, PNG e WebP quando possível e preserva os demais formatos.
 O visualizador abre imagens compatíveis, PDF e vídeo MP4/WebM. Outros formatos podem ser baixados.

@@ -9,6 +9,10 @@ const safeId = /^[a-zA-Z0-9_-]{1,128}$/
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store')
+  if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).end()
+  if (!process.env.DRIVE_CLIENT_ID || !process.env.DRIVE_CLIENT_SECRET || !process.env.DRIVE_REFRESH_TOKEN) {
+    return res.status(503).json({ error: 'O Google Drive ainda não foi configurado.' })
+  }
   try {
     const client = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_PUBLISHABLE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -33,8 +37,8 @@ export default async function handler(req, res) {
       if (!response.ok) throw new Error('Drive request')
       return response
     }
-    const root = process.env.DRIVE_STUDIES_FOLDER_ID
-    if (!root || !safeId.test(root)) throw new Error('Drive root')
+    const root = process.env.DRIVE_STUDIES_FOLDER_ID || await studiesFolder(request)
+    if (!safeId.test(root)) throw new Error('Drive root')
     const folders = await list(request, `'${root}' in parents and mimeType = '${folderType}' and appProperties has { key='subject' and value='${subject}' }`)
     let folder = folders[0]?.id
     if (!folder) {
@@ -86,6 +90,22 @@ export default async function handler(req, res) {
   } catch {
     return res.status(502).json({ error: 'Não foi possível acessar o Google Drive.' })
   }
+}
+
+async function studiesFolder(request) {
+  const filter = `mimeType = '${folderType}' and appProperties has { key='organiza_ai' and value='estudos_v1' }`
+  const folders = await list(request, filter)
+  if (folders.length) return folders[0].id
+  const response = await request(`${drive}/files?fields=id`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: 'Organiza Aí - Estudos',
+      mimeType: folderType,
+      appProperties: { organiza_ai: 'estudos_v1' },
+    }),
+  })
+  return (await response.json()).id
 }
 
 async function list(request, filter) {
