@@ -25,3 +25,10 @@ create table if not exists public.organiza_push (
 alter table public.organiza_push enable row level security;
 create policy "Members manage own notifications" on public.organiza_push for all
   to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+revoke all on public.organiza_members, public.organiza_workspace, public.organiza_push from public, anon, authenticated;
+grant select on public.organiza_members to authenticated;
+grant select on public.organiza_workspace to authenticated;
+grant update (version, entries) on public.organiza_workspace to authenticated;
+grant select, insert, update, delete on public.organiza_push to authenticated;
+grant select, delete on public.organiza_push to service_role;
