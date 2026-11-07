@@ -36,19 +36,31 @@ function occursOn(entry: Entry, day: string) {
   return (Date.parse(day) - Date.parse(entry.date)) % (7 * 86_400_000) === 0
 }
 
+function shiftDay(day: string, offset: number) {
+  const date = new Date(day + 'T00:00:00Z')
+  date.setUTCDate(date.getUTCDate() + offset)
+  return date.toISOString().slice(0, 10)
+}
+
+const weekDayLabel = new Intl.DateTimeFormat('pt-BR', {
+  weekday: 'long', day: 'numeric', month: 'short', timeZone: 'UTC',
+})
+
 function App() {
   const [tab, setTab] = useState<Area | 'Início'>(linkedDay ? 'Semana' : 'Início')
   const [entries, setEntries] = useState<Entry[]>([])
   const [ready, setReady] = useState(false)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<Entry>()
-  const [routine, setRoutine] = useState<'Agenda' | 'Recorrentes'>('Agenda')
+  const [routine, setRoutine] = useState<'Dia' | 'Semana' | 'Recorrentes'>(linkedDay ? 'Dia' : 'Semana')
   const [message, setMessage] = useState('')
   const [conflict, setConflict] = useState<Snapshot>()
   const [subject, setSubject] = useState('')
   const [day, setDay] = useState(linkedDay && /^\d{4}-\d{2}-\d{2}$/.test(linkedDay) ? linkedDay : today)
   const [pushMessage, setPushMessage] = useState('')
-  const month = day.slice(0, 7)
+  const [month, setMonth] = useState(today.slice(0, 7))
+  const monday = shiftDay(day, -((new Date(day + 'T00:00:00Z').getUTCDay() + 6) % 7))
+  const week = Array.from({ length: 7 }, (_, index) => shiftDay(monday, index))
   const accounts = entries.filter(entry => entry.kind === 'Conta')
   const subjects = entries.filter(entry => entry.kind === 'Matéria')
   const expenses = entries.filter(entry => entry.area === 'Finanças' && (!entry.kind || entry.kind === 'Gasto') && entry.date?.startsWith(month))
@@ -187,14 +199,30 @@ function App() {
     </div>}
     {ready && tab !== 'Início' && <section className="panel">
       <div className="toolbar"><h2>{tab === 'Semana' ? routine : tab === 'Estudos' ? 'Matérias e conteúdos' : 'Lançamentos em pesos argentinos'}</h2>
-        <button className="primary" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: tab, date: day, weekly: tab === 'Semana' && routine === 'Recorrentes', kind: tab === 'Estudos' ? subject ? 'Tema' : 'Matéria' : tab === 'Finanças' ? 'Gasto' : undefined, parent: tab === 'Estudos' ? subject || undefined : undefined })}>+ Adicionar</button></div>
-      {tab === 'Semana' && <div className="toolbar">{(['Agenda', 'Recorrentes'] as const).map(view => <button key={view} aria-pressed={routine === view} onClick={() => setRoutine(view)}>{view}</button>)}</div>}
-      {tab === 'Semana' && routine === 'Agenda' && <label>Dia da agenda<input type="date" value={day} onChange={event => setDay(event.target.value || today)} /></label>}
+        <button className="primary" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: tab, date: tab === 'Finanças' ? month === today.slice(0, 7) ? today : month + '-01' : day, weekly: tab === 'Semana' && routine === 'Recorrentes', kind: tab === 'Estudos' ? subject ? 'Tema' : 'Matéria' : tab === 'Finanças' ? 'Gasto' : undefined, parent: tab === 'Estudos' ? subject || undefined : undefined })}>+ Adicionar</button></div>
+      {tab === 'Semana' && <div className="toolbar">{(['Dia', 'Semana', 'Recorrentes'] as const).map(view => <button key={view} aria-pressed={routine === view} onClick={() => setRoutine(view)}>{view}</button>)}</div>}
+      {tab === 'Semana' && routine === 'Dia' && <label>Dia da agenda<input type="date" value={day} onChange={event => setDay(event.target.value || today)} /></label>}
+      {tab === 'Semana' && routine === 'Semana' && <>
+        <div className="toolbar week-controls">
+          <button onClick={() => setDay(shiftDay(day, -7))}>Semana anterior</button>
+          <button onClick={() => setDay(today)}>Hoje</button>
+          <button onClick={() => setDay(shiftDay(day, 7))}>Próxima semana</button>
+        </div>
+        {week.map(date => <section className="week-day" key={date}>
+          <h3><button onClick={() => { setDay(date); setRoutine('Dia') }}>
+            {weekDayLabel.format(new Date(date))}{date === today && ' · Hoje'}
+          </button></h3>
+          {list(entries.filter(item => item.area === 'Semana' && occursOn(item, date)))}
+        </section>)}
+        {entries.some(item => item.area === 'Semana' && !item.date) && <section className="week-day">
+          <h3>Sem data</h3>{list(entries.filter(item => item.area === 'Semana' && !item.date))}
+        </section>}
+      </>}
       {tab === 'Estudos' && <label>Matéria<select value={subject} onChange={event => setSubject(event.target.value)}>
         <option value="">Todas</option>{subjects.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
       </select></label>}
       {tab === 'Finanças' && <>
-        <label>Mês<input type="month" value={month} onChange={event => setDay(event.target.value ? event.target.value + '-01' : today)} /></label>
+        <label>Mês<input type="month" value={month} onChange={event => setMonth(event.target.value || today.slice(0, 7))} /></label>
         <div className="finance-summary">{[['Disponível', available], ['Reservado', reserved], ['Gasto', spent]].map(([label, value], index) => {
           const combined = Math.max(available, 0) + reserved + spent
           const percent = combined ? Math.max(Number(value), 0) / combined * 100 : 0
@@ -202,7 +230,7 @@ function App() {
         })}</div>
         {limit !== undefined && <p>Limite do mês: {money.format(limit)}{spent > limit ? ' · Limite ultrapassado' : ''}</p>}
       </>}
-      {list(entries.filter(item => {
+      {!(tab === 'Semana' && routine === 'Semana') && list(entries.filter(item => {
         if (item.area !== tab) return false
         if (tab === 'Semana') return routine === 'Recorrentes' ? item.weekly : !item.date || occursOn(item, day)
         if (tab === 'Estudos') return !subject || item.id === subject || item.parent === subject
