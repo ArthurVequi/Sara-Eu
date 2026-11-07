@@ -1,8 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
+import { sendNotification, setVapidDetails } from 'web-push'
 import { timingSafeEqual } from 'node:crypto'
-import { createRequire } from 'node:module'
-
-const webpush = createRequire(import.meta.url)('web-push')
 
 export default async function handler(req, res) {
   const secret = process.env.CRON_SECRET
@@ -15,12 +13,12 @@ export default async function handler(req, res) {
     const client = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
     const { data, error } = await client.from('organiza_push').select('endpoint, subscription')
     if (error) throw error
-    webpush.setVapidDetails(process.env.VAPID_SUBJECT, process.env.VITE_VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY)
+    setVapidDetails(process.env.VAPID_SUBJECT, process.env.VITE_VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY)
     const day = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date())
     const payload = JSON.stringify({ title: 'Seus compromissos de hoje', body: 'Toque para abrir a agenda do dia.', url: `/?agenda=${day}` })
     const results = await Promise.allSettled(data.map(async row => {
       try {
-        await webpush.sendNotification(row.subscription, payload, { TTL: 3600, topic: day })
+        await sendNotification(row.subscription, payload, { TTL: 3600, topic: day })
       } catch (failure) {
         if (failure.statusCode !== 404 && failure.statusCode !== 410) throw failure
         const { error: cleanup } = await client.from('organiza_push').delete().eq('endpoint', row.endpoint)
