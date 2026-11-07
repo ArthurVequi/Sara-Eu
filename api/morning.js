@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   }
   try {
     const client = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-    const { data, error } = await client.from('organiza_push').select('endpoint, subscription, user_id')
+    const { data, error } = await client.from('organiza_push').select('endpoint, subscription')
     if (error) throw error
     webpush.setVapidDetails(process.env.VAPID_SUBJECT, process.env.VITE_VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY)
     const day = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date())

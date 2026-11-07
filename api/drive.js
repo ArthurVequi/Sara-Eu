@@ -9,17 +9,10 @@ const safeId = /^[a-zA-Z0-9_-]{1,128}$/
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store')
-  const authorization = req.headers.authorization
-  if (!authorization?.startsWith('Bearer ')) return res.status(401).end()
   try {
     const client = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_PUBLISHABLE_KEY, {
-      global: { headers: { Authorization: authorization } },
       auth: { persistSession: false, autoRefreshToken: false },
     })
-    const { data: { user } } = await client.auth.getUser(authorization.slice(7))
-    if (!user) return res.status(401).end()
-    const membership = await client.from('organiza_members').select('user_id').eq('user_id', user.id).maybeSingle()
-    if (!membership.data) return res.status(403).end()
     const subject = req.query.subject
     if (typeof subject !== 'string' || !safeId.test(subject)) return res.status(400).end()
     const { data: workspace } = await client.from('organiza_workspace').select('entries').eq('id', 1).single()

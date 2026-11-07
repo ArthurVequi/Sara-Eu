@@ -43,8 +43,6 @@ function App() {
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<Entry>()
   const [routine, setRoutine] = useState<'Agenda' | 'Recorrentes'>('Agenda')
-  const [signedIn, setSignedIn] = useState(false)
-  const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
   const [conflict, setConflict] = useState<Snapshot>()
   const [subject, setSubject] = useState('')
@@ -61,14 +59,8 @@ function App() {
   const available = total(accounts) - reserved
   const limit = entries.find(entry => entry.kind === 'Limite' && entry.date?.startsWith(month))?.amount
 
-  useEffect(() => {
-    if (!cloud) return
-    const { data } = cloud.auth.onAuthStateChange((_event, session) => setSignedIn(Boolean(session)))
-    return () => data.subscription.unsubscribe()
-  }, [])
-
   async function synchronize(choice?: 'local' | 'remote') {
-    if (!cloud || !signedIn || !navigator.onLine) return
+    if (!cloud || !navigator.onLine) return
     try {
       await navigator.locks.request('organiza-ai-sync', async () => {
         const base = (await db.settings.get('cloud'))?.snapshot
@@ -111,13 +103,13 @@ function App() {
   }
 
   useEffect(() => {
-    if (!ready || !signedIn) return
+    if (!ready || !cloud) return
     const sync = () => void synchronize()
     sync()
     window.addEventListener('online', sync)
     const timer = window.setInterval(sync, 20_000)
     return () => { window.removeEventListener('online', sync); window.clearInterval(timer) }
-  }, [ready, signedIn])
+  }, [ready])
 
   async function refresh() {
     setEntries(await db.entries.toArray())
@@ -164,19 +156,6 @@ function App() {
       {entry.amount !== undefined && <strong>{money.format(entry.amount)}</strong>}
     </li>)}</ul> : <p>Nenhum item por aqui.</p>
   }
-
-  if (cloud && !signedIn) return <main><section className="panel">
-    <h1>Organiza Aí</h1>
-    <form onSubmit={async event => {
-      event.preventDefault()
-      const result = await cloud!.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: location.origin } })
-      setMessage(result.error ? 'Não foi possível enviar o link de acesso.' : 'Confira seu e-mail para entrar.')
-    }}>
-      <label>E-mail autorizado<input type="email" required value={email} onChange={event => setEmail(event.target.value)} /></label>
-      <button className="primary">Enviar link de acesso</button>
-    </form>
-    <p role="status">{message}</p>
-  </section></main>
 
   return <main>
     <header><span className="brand">✓ Organiza Aí</span><span className="badge">{cloud ? message || 'Espaço compartilhado' : 'Modo local · demonstração'}</span></header>

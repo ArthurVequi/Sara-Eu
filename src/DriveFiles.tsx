@@ -1,17 +1,11 @@
 import { useEffect, useState } from 'react'
-import { cloud } from './cloud'
 
 type DriveFile = { id: string; name: string; mimeType: string }
 
 async function request(subject: string, options?: RequestInit, file?: string) {
-  const { data } = await cloud!.auth.getSession()
-  if (!data.session) throw new Error('Entre para acessar os arquivos.')
   const query = new URLSearchParams({ subject })
   if (file) query.set('file', file)
-  const response = await fetch(`/api/drive?${query}`, {
-    ...options,
-    headers: { ...options?.headers, Authorization: `Bearer ${data.session.access_token}` },
-  })
+  const response = await fetch(`/api/drive?${query}`, options)
   if (!response.ok) {
     const body = await response.json().catch(() => null)
     throw new Error(body?.error ?? 'Não foi possível acessar os arquivos.')

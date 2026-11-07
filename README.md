@@ -14,11 +14,11 @@ As variáveis sem prefixo `VITE_` são exclusivas do servidor. Não coloque toke
 - `VITE_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` para Web Push
 - `DRIVE_CLIENT_ID`, `DRIVE_CLIENT_SECRET`, `DRIVE_REFRESH_TOKEN` e `DRIVE_STUDIES_FOLDER_ID`
 
-No Supabase, aplique `supabase/schema.sql` a um projeto novo, configure a URL da Vercel
-como URL de retorno do Auth, configure SMTP e crie os dois usuários autorizados.
-Inclua o UUID de cada um em `public.organiza_members`. Ambos editam o mesmo espaço.
-O primeiro acesso exige internet e usa um link por e-mail. A demonstração e o espaço
-compartilhado usam bancos locais separados.
+Em um Supabase novo, aplique `supabase/schema.sql` e depois `supabase/public-access.sql`.
+O CoupleSA já recebeu essa migração. O app abre direto, sem login ou perfis.
+O espaço é público: qualquer pessoa pode ler e editar os registros compartilhados,
+inclusive pela API. Os arquivos das matérias também ficam acessíveis pelo app.
+A demonstração e o espaço compartilhado usam bancos locais separados.
 
 Para o Drive, autorize o aplicativo OAuth com a conta antigravidade72@gmail.com
 e configure a pasta Estudos dentro de Organiza Aí. A pasta configurada precisa estar
