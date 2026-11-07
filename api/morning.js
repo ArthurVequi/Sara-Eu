@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
-import webpush from 'web-push'
 import { timingSafeEqual } from 'node:crypto'
+import { createRequire } from 'node:module'
+
+const webpush = createRequire(import.meta.url)('web-push')
 
 export default async function handler(req, res) {
   const secret = process.env.CRON_SECRET
