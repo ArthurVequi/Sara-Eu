@@ -7,12 +7,12 @@ import './style.css'
 
 type Area = 'Semana' | 'Estudos' | 'Finanças'
 type Kind = 'Matéria' | 'Tema' | 'Prova' | 'Revisão' | 'Conta' | 'Gasto' | 'Conta fixa' | 'Parcela' | 'Limite'
-type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number }
+type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number }
 const areas: Area[] = ['Semana', 'Estudos', 'Finanças']
 const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date())
 const linkedDay = new URLSearchParams(location.search).get('agenda')
 const examples: Entry[] = [
-  { id: 'demo-class', area: 'Semana', title: 'Aula de Anatomia', detail: '08:30 · Sala 12', date: today, weekly: true },
+  { id: 'demo-class', area: 'Semana', title: 'Aula de Anatomia', detail: 'Sala 12', date: today, startTime: '08:30', endTime: '10:00', weekly: true },
   { id: 'demo-task', area: 'Semana', title: 'Organizar material da aula', detail: 'Tarefa', date: today },
   { id: 'demo-study', area: 'Estudos', title: 'Anatomia', detail: '', kind: 'Matéria' },
   { id: 'demo-topic', area: 'Estudos', title: 'Sistema cardiovascular', detail: '', kind: 'Tema', parent: 'demo-study' },
@@ -140,6 +140,10 @@ function App() {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!editing || !editing.title.trim()) return
+    if (editing.area === 'Semana' && editing.endTime && (!editing.startTime || editing.endTime <= editing.startTime)) {
+      setError('Informe um horário de término posterior ao início.')
+      return
+    }
     try {
       await db.entries.put({ ...editing, title: editing.title.trim() })
       await refresh()
@@ -160,11 +164,13 @@ function App() {
   }
 
   function list(items: Entry[]) {
-    return items.length ? <ul>{items.map(entry => <li key={entry.id}>
+    const ordered = [...items].sort((a, b) =>
+      (a.startTime || '24:00').localeCompare(b.startTime || '24:00'))
+    return ordered.length ? <ul>{ordered.map(entry => <li key={entry.id}>
       {entry.area === 'Semana' && !entry.weekly && <input type="checkbox" checked={!!entry.done} aria-label={`Concluir ${entry.title}`} onChange={() => void toggle(entry)} />}
       <button className="entry" onClick={() => setEditing(entry)}>
         <strong>{entry.title}</strong>
-        <small>{[entry.kind, entry.detail, entry.category, entries.find(item => item.id === entry.parent)?.title, entry.date, entry.weekly ? 'Toda semana' : ''].filter(Boolean).join(' · ')}</small>
+        <small>{[entry.kind, [entry.startTime, entry.endTime].filter(Boolean).join(' – '), entry.detail, entry.category, entries.find(item => item.id === entry.parent)?.title, entry.date, entry.weekly ? 'Toda semana' : ''].filter(Boolean).join(' · ')}</small>
       </button>
       {entry.kind === 'Conta' && <span className="account-color" style={{ backgroundColor: entry.color }} aria-hidden="true" />}
       {entry.amount !== undefined && <strong>{money.format(entry.amount)}</strong>}
@@ -252,7 +258,11 @@ function App() {
       {editing.kind === 'Conta' && <label>Cor da conta<input type="color" value={editing.color ?? '#d48ba7'} onChange={event => setEditing({ ...editing, color: event.target.value })} /></label>}
       {editing.kind === 'Parcela' && <label>Número de parcelas<input required type="number" min="2" step="1" value={editing.installments ?? ''} onChange={event => setEditing({ ...editing, installments: event.target.valueAsNumber || undefined })} /></label>}
       <label>Detalhes<input value={editing.detail} onChange={event => setEditing({ ...editing, detail: event.target.value })} /></label>
-      <label>Data<input type="date" value={editing.date ?? ''} onChange={event => setEditing({ ...editing, date: event.target.value })} /></label>
+      <label>Data<input type="date" required={editing.weekly || editing.kind === 'Prova' || editing.kind === 'Revisão' || editing.area === 'Finanças' && editing.kind !== 'Conta'} value={editing.date ?? ''} onChange={event => setEditing({ ...editing, date: event.target.value })} /></label>
+      {editing.area === 'Semana' && <div className="grid">
+        <label>Início<input type="time" value={editing.startTime ?? ''} onChange={event => setEditing({ ...editing, startTime: event.target.value })} /></label>
+        <label>Término<input type="time" value={editing.endTime ?? ''} onChange={event => setEditing({ ...editing, endTime: event.target.value })} /></label>
+      </div>}
       {editing.area === 'Semana' && <label className="check"><input type="checkbox" checked={!!editing.weekly} onChange={event => setEditing({ ...editing, weekly: event.target.checked })} /> Repetir toda semana</label>}
       {editing.area === 'Finanças' && <label>{editing.kind === 'Parcela' ? 'Valor de cada parcela' : 'Valor'} (ARS)<input required type="number" min={editing.kind === 'Conta' ? undefined : '0.01'} step="0.01" value={editing.amount ?? ''} onChange={event => setEditing({ ...editing, amount: event.target.value ? Number(event.target.value) : undefined })} /></label>}
       <div className="toolbar"><button type="button" onClick={() => setEditing(undefined)}>Cancelar</button><button className="primary">Salvar</button></div>
@@ -299,7 +309,7 @@ function sameEntry(a: Entry, b: Entry) {
 function changes(a: Entry[], b: Entry[]) {
   const different = a.filter(entry => !b.some(other => sameEntry(entry, other)))
   return different.length ? <ul>{different.map(entry => <li key={entry.id}>
-    {entry.title} · {entry.detail} {entry.date} {entry.amount === undefined ? '' : money.format(entry.amount)}
+    {entry.title} · {entry.detail} {entry.date} {[entry.startTime, entry.endTime].filter(Boolean).join(' – ')} {entry.amount === undefined ? '' : money.format(entry.amount)}
     {entry.weekly ? ' · Semanal' : ''}{entry.done ? ' · Concluído' : ''}
     {entry.kind && ` · ${entry.kind}`}{entry.category && ` · ${entry.category}`}
     {entry.installments && ` · ${entry.installments} parcelas`}{entry.color && ` · Cor ${entry.color}`}
