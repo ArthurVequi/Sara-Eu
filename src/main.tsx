@@ -63,12 +63,10 @@ function App() {
   const week = Array.from({ length: 7 }, (_, index) => shiftDay(monday, index))
   const accounts = entries.filter(entry => entry.kind === 'Conta')
   const subjects = entries.filter(entry => entry.kind === 'Matéria')
-  const expenses = entries.filter(entry => entry.area === 'Finanças' && (!entry.kind || entry.kind === 'Gasto') && entry.date?.startsWith(month))
-  const planned = entries.filter(entry => isReserved(entry, month))
-  const total = (items: Entry[]) => items.reduce((sum, entry) => sum + (entry.amount ?? 0), 0)
-  const reserved = total(planned)
-  const spent = total(expenses)
-  const available = total(accounts) - reserved
+  const { expenses, planned, available, reserved, spent } = financeSummary(entries, month)
+  const current = financeSummary(entries, today.slice(0, 7))
+  const exams = entries.filter(entry => entry.kind === 'Prova' && entry.date && entry.date >= today)
+    .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '')).slice(0, 3)
   const limit = entries.find(entry => entry.kind === 'Limite' && entry.date?.startsWith(month))?.amount
 
   async function synchronize(choice?: 'local' | 'remote') {
@@ -149,6 +147,7 @@ function App() {
       await refresh()
       setEditing(undefined)
       setError('')
+      void synchronize()
     } catch {
       setError('Não foi possível salvar. Tente novamente.')
     }
@@ -158,8 +157,32 @@ function App() {
     try {
       await db.entries.update(entry.id, { done: !entry.done })
       await refresh()
+      void synchronize()
     } catch {
       setError('Não foi possível atualizar a tarefa.')
+    }
+  }
+
+  async function remove(entry: Entry) {
+    const note = entry.kind === 'Matéria' ? '\nOs arquivos da matéria permanecerão no Google Drive.' : ''
+    if (!window.confirm(`Excluir “${entry.title}” do espaço compartilhado?${note}`)) return
+    try {
+      const removed = await db.transaction('rw', db.entries, async () => {
+        if ((await db.entries.toArray()).some(item => item.parent === entry.id)) return false
+        await db.entries.delete(entry.id)
+        return true
+      })
+      if (!removed) {
+        setError('Este item tem registros vinculados. Mova ou exclua esses registros antes.')
+        return
+      }
+      if (subject === entry.id) setSubject('')
+      setEditing(undefined)
+      setError('')
+      await refresh()
+      void synchronize()
+    } catch {
+      setError('Não foi possível excluir o item. Tente novamente.')
     }
   }
 
@@ -202,8 +225,13 @@ function App() {
     {!ready && !error && <p>Carregando…</p>}
     {ready && tab === 'Início' && <div className="grid">
       <section className="panel"><h2>Hoje</h2>{list(entries.filter(item => item.area === 'Semana' && occursOn(item, today)))}</section>
-      <section className="panel"><h2>Estudos de hoje</h2>{list(entries.filter(item => item.area === 'Estudos' && item.date === today))}</section>
-      <section className="panel"><h2>Gastos do mês</h2><strong>{money.format(entries.filter(item => item.area === 'Finanças' && item.date?.startsWith(today.slice(0, 7))).reduce((sum, item) => sum + (item.amount ?? 0), 0))}</strong></section>
+      <section className="panel"><h2>Próximas provas</h2>{list(exams)}</section>
+      <section className="panel"><h2>Revisões pendentes</h2>{list(entries.filter(item => item.kind === 'Revisão' && !item.done && item.date && item.date <= today))}</section>
+      <section className="panel"><h2>Resumo financeiro do mês</h2><dl>
+        <dt>Disponível</dt><dd>{money.format(current.available)}</dd>
+        <dt>Reservado</dt><dd>{money.format(current.reserved)}</dd>
+        <dt>Gasto</dt><dd>{money.format(current.spent)}</dd>
+      </dl></section>
     </div>}
     {ready && tab !== 'Início' && <section className="panel">
       <div className="toolbar"><h2>{tab === 'Semana' ? routine : tab === 'Estudos' ? 'Matérias e conteúdos' : 'Lançamentos em pesos argentinos'}</h2>
@@ -265,9 +293,22 @@ function App() {
       </div>}
       {editing.area === 'Semana' && <label className="check"><input type="checkbox" checked={!!editing.weekly} onChange={event => setEditing({ ...editing, weekly: event.target.checked })} /> Repetir toda semana</label>}
       {editing.area === 'Finanças' && <label>{editing.kind === 'Parcela' ? 'Valor de cada parcela' : 'Valor'} (ARS)<input required type="number" min={editing.kind === 'Conta' ? undefined : '0.01'} step="0.01" value={editing.amount ?? ''} onChange={event => setEditing({ ...editing, amount: event.target.value ? Number(event.target.value) : undefined })} /></label>}
-      <div className="toolbar"><button type="button" onClick={() => setEditing(undefined)}>Cancelar</button><button className="primary">Salvar</button></div>
+      {editing.kind === 'Revisão' && <label className="check"><input type="checkbox" checked={!!editing.done} onChange={event => setEditing({ ...editing, done: event.target.checked })} /> Revisão concluída</label>}
+      <div className="toolbar">
+        <button type="button" onClick={() => { setEditing(undefined); setError('') }}>Cancelar</button>
+        {entries.some(entry => entry.id === editing.id) && <button type="button" onClick={() => void remove(editing)}>Excluir</button>}
+        <button className="primary">Salvar</button>
+      </div>
     </form></section>}
   </main>
+}
+
+function financeSummary(entries: Entry[], month: string) {
+  const expenses = entries.filter(entry => entry.area === 'Finanças' && (!entry.kind || entry.kind === 'Gasto') && entry.date?.startsWith(month))
+  const planned = entries.filter(entry => isReserved(entry, month))
+  const total = (items: Entry[]) => items.reduce((sum, entry) => sum + (entry.amount ?? 0), 0)
+  const reserved = total(planned)
+  return { expenses, planned, reserved, spent: total(expenses), available: total(entries.filter(entry => entry.kind === 'Conta')) - reserved }
 }
 
 function sameEntries(a: Entry[], b: Entry[]) {
