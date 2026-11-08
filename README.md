@@ -28,7 +28,8 @@ Cadastre o ID, o segredo e o refresh token na Vercel em Production. O app cria
 As pastas por matéria são preparadas após a sincronização. O app aceita arquivos
 de até 100 MB, guarda os envios pendentes no aparelho e retoma o envio ao voltar
 a ficar online com o app aberto. Arquivos acima de 3 MB são transferidos em partes.
-JPEG, PNG e WebP de até 3 MB são otimizados quando possível.
+JPEG, PNG, WebP e vídeos são otimizados quando possível. Vídeos são convertidos
+para MP4 e o original é mantido se a conversão falhar ou não reduzir o tamanho.
 O visualizador abre imagens compatíveis, PDF e vídeo MP4/WebM. Outros formatos podem ser baixados.
 
 O cron está configurado para 07h na Argentina. Ative o lembrete em cada aparelho
@@ -38,4 +39,4 @@ pela tela de início antes de ativar. O toque abre a agenda do dia.
 ## Antes de usar com dados reais
 
 Valide o funcionamento em modo avião, conflitos entre aparelhos, retomada de
-uploads e recebimento de push em iPhone e Android. A conversão de vídeos ainda está pendente.
+uploads e recebimento de push em iPhone e Android.
