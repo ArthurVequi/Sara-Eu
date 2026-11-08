@@ -25,9 +25,10 @@ conta antigravidade73@gmail.com e o escopo `https://www.googleapis.com/auth/driv
 Cadastre o ID, o segredo e o refresh token na Vercel em Production. O app cria
 `Organiza Aí - Estudos` no primeiro uso. Opcionalmente, configure
 `DRIVE_STUDIES_FOLDER_ID` com uma pasta já acessível ao mesmo cliente OAuth.
-As pastas por matéria são criadas ao acessar seus
-arquivos depois da primeira sincronização. A integração atual aceita envios de até
-3 MB por arquivo, otimiza JPEG, PNG e WebP quando possível e preserva os demais formatos.
+As pastas por matéria são preparadas após a sincronização. O app aceita arquivos
+de até 100 MB, guarda os envios pendentes no aparelho e retoma o envio ao voltar
+a ficar online com o app aberto. Arquivos acima de 3 MB são transferidos em partes.
+JPEG, PNG e WebP de até 3 MB são otimizados quando possível.
 O visualizador abre imagens compatíveis, PDF e vídeo MP4/WebM. Outros formatos podem ser baixados.
 
 O cron está configurado para 07h na Argentina. Ative o lembrete em cada aparelho
@@ -36,6 +37,5 @@ pela tela de início antes de ativar. O toque abre a agenda do dia.
 
 ## Antes de usar com dados reais
 
-Valide acesso com os dois usuários, funcionamento em modo avião, conflito entre
-aparelhos, uploads e recebimento de push em iPhone e Android. A integração de
-arquivos grandes, conversão de vídeos e fila de arquivos offline ainda está pendente.
+Valide o funcionamento em modo avião, conflitos entre aparelhos, retomada de
+uploads e recebimento de push em iPhone e Android. A conversão de vídeos ainda está pendente.
