@@ -2,7 +2,7 @@ import Dexie, { type Table } from 'dexie'
 import { useEffect, useState, type FormEvent } from 'react'
 import { createRoot } from 'react-dom/client'
 import { cloud, enableMorningPush } from './cloud'
-import { DriveFiles } from './DriveFiles'
+import { DriveFiles, prepareDriveFolders, startDriveQueue } from './DriveFiles'
 import './style.css'
 
 type Area = 'Semana' | 'Estudos' | 'Finanças'
@@ -108,6 +108,7 @@ function App() {
         await refresh()
         setConflict(undefined)
         setMessage('Sincronização concluída')
+        void prepareDriveFolders(next.entries.filter(item => item.kind === 'Matéria').map(item => item.id)).catch(() => {})
       })
     } catch {
       setMessage('Sincronização indisponível. Alterações continuam neste aparelho.')
@@ -116,11 +117,12 @@ function App() {
 
   useEffect(() => {
     if (!ready || !cloud) return
+    const stopQueue = startDriveQueue()
     const sync = () => void synchronize()
     sync()
     window.addEventListener('online', sync)
     const timer = window.setInterval(sync, 20_000)
-    return () => { window.removeEventListener('online', sync); window.clearInterval(timer) }
+    return () => { stopQueue(); window.removeEventListener('online', sync); window.clearInterval(timer) }
   }, [ready])
 
   async function refresh() {

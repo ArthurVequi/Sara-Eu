@@ -6,6 +6,9 @@ const limit = 3 * 1024 * 1024
 const drive = 'https://www.googleapis.com/drive/v3'
 const folderType = 'application/vnd.google-apps.folder'
 const safeId = /^[a-zA-Z0-9_-]{1,128}$/
+const chunkSize = 2 * 1024 * 1024
+const maxUpload = 100 * 1024 * 1024
+const uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files'
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store')
@@ -14,6 +17,7 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'O Google Drive ainda não foi configurado.' })
   }
   try {
+    if (req.method === 'POST' && req.body?.action === 'chunk') return await uploadChunk(req.body, res)
     const client = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_PUBLISHABLE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
     })
@@ -49,25 +53,49 @@ export default async function handler(req, res) {
       folder = (await response.json()).id
     }
     if (req.method === 'GET' && !req.query.file) {
+      if (req.query.folder === '1') return res.status(204).end()
       return res.json(await list(request, `'${folder}' in parents`))
     }
     if (req.method === 'GET' && safeId.test(req.query.file)) {
       const file = req.query.file
       const metadata = await (await request(`${drive}/files/${file}?fields=parents,size,trashed`)).json()
       if (metadata.trashed || !metadata.parents?.includes(folder)) return res.status(404).end()
-      if (Number(metadata.size) > limit) return res.status(413).json({ error: 'Arquivo grande demais para esta versão.' })
-      const response = await request(`${drive}/files/${file}?alt=media`)
+      const size = Number(metadata.size)
+      const offset = Number(req.query.offset ?? 0)
+      if (!Number.isSafeInteger(offset) || offset < 0 || offset >= Math.max(size, 1) || !Number.isSafeInteger(size)) return res.status(416).end()
+      const end = Math.min(size - 1, offset + chunkSize - 1)
+      const response = await request(`${drive}/files/${file}?alt=media`, {
+        headers: size ? { Range: `bytes=${offset}-${end}` } : {},
+      })
+      if (size > chunkSize && response.status !== 206) throw new Error('Drive range')
       res.setHeader('Content-Type', 'application/octet-stream')
       res.setHeader('X-Content-Type-Options', 'nosniff')
+      res.setHeader('X-File-Size', String(size))
       return res.send(Buffer.from(await response.arrayBuffer()))
     }
     if (req.method !== 'POST') return res.status(405).end()
-    const { name, base64, mimeType } = req.body ?? {}
-    if (typeof name !== 'string' || !name.trim() || name.length > 250 || typeof base64 !== 'string' || base64.length > limit * 4 / 3) {
-      return res.status(400).json({ error: 'Arquivo inválido ou acima de 3 MB.' })
+    const { name, base64, mimeType, action, size, uploadId } = req.body ?? {}
+    if (typeof name !== 'string' || !name.trim() || name.length > 250 ||
+        (uploadId !== undefined && (typeof uploadId !== 'string' || !safeId.test(uploadId)))) {
+      return res.status(400).json({ error: 'Arquivo inválido.' })
     }
-    let bytes = Buffer.from(base64, 'base64')
     let type = typeof mimeType === 'string' && /^[\w.+-]+\/[\w.+-]+$/.test(mimeType) ? mimeType : 'application/octet-stream'
+    const appProperties = uploadId ? { uploadId } : undefined
+    if (uploadId) {
+      const existing = await list(request, `'${folder}' in parents and appProperties has { key='uploadId' and value='${uploadId}' }`)
+      if (existing.length) return res.json({ done: true })
+    }
+    if (action === 'start') {
+      if (!Number.isSafeInteger(size) || size <= 0 || size > maxUpload) return res.status(400).end()
+      const response = await request(`${uploadUrl}?uploadType=resumable`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Upload-Content-Type': type, 'X-Upload-Content-Length': String(size) },
+        body: JSON.stringify({ name, mimeType: type, parents: [folder], appProperties }),
+      })
+      return res.json({ session: response.headers.get('location') })
+    }
+    if (typeof base64 !== 'string' || base64.length > limit * 4 / 3) return res.status(400).end()
+    let bytes = Buffer.from(base64, 'base64')
     let filename = name
     if (['image/jpeg', 'image/png', 'image/webp'].includes(type)) {
       const optimized = await sharp(bytes).rotate().resize({ width: 1800, height: 1800, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer()
@@ -78,7 +106,7 @@ export default async function handler(req, res) {
       }
     }
     const boundary = randomUUID()
-    const metadata = JSON.stringify({ name: filename, parents: [folder], mimeType: type })
+    const metadata = JSON.stringify({ name: filename, parents: [folder], mimeType: type, appProperties })
     const body = Buffer.concat([
       Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: ${type}\r\n\r\n`),
       bytes, Buffer.from(`\r\n--${boundary}--\r\n`),
@@ -90,6 +118,24 @@ export default async function handler(req, res) {
   } catch {
     return res.status(502).json({ error: 'Não foi possível acessar o Google Drive.' })
   }
+}
+
+async function uploadChunk({ session, base64, offset, size }, res) {
+  if (typeof session !== 'string' || !session.startsWith(uploadUrl + '?') || session.length > 2048 ||
+      !Number.isSafeInteger(size) || size <= 0 || size > maxUpload ||
+      !Number.isSafeInteger(offset) || offset < 0 || offset >= size ||
+      typeof base64 !== 'string' || base64.length > Math.ceil(chunkSize / 3) * 4) return res.status(400).end()
+  const url = new URL(session)
+  if (!url.searchParams.has('upload_id') || url.hash) return res.status(400).end()
+  const bytes = Buffer.from(base64, 'base64')
+  if (bytes.length > Math.min(chunkSize, size - offset) ||
+      (bytes.length && offset + bytes.length < size && bytes.length % (256 * 1024) !== 0)) return res.status(400).end()
+  const range = bytes.length ? `bytes ${offset}-${offset + bytes.length - 1}/${size}` : `bytes */${size}`
+  const response = await fetch(url, { method: 'PUT', redirect: 'manual', headers: { 'Content-Range': range }, body: bytes })
+  if (response.status === 308) return res.json({ offset: Number(response.headers.get('range')?.split('-')[1] ?? -1) + 1 })
+  if (response.status === 404 || response.status === 410) return res.status(410).json({ error: 'Envio expirado. Tentando novamente.' })
+  if (!response.ok) throw new Error('Drive chunk')
+  return res.json({ done: true })
 }
 
 async function studiesFolder(request) {
