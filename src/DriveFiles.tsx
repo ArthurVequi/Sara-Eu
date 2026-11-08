@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Dexie, { type Table } from 'dexie'
 
 type DriveFile = { id: string; name: string; mimeType: string }
-type Upload = { id: string; subject: string; file: File; session?: string }
+type Upload = { id: string; subject: string; file: File; session?: string; uploaded?: boolean }
 const queue = new Dexie('organiza-ai-drive') as Dexie & {
   uploads: Table<Upload, string>
   folders: Table<{ id: string }, string>
@@ -77,7 +77,14 @@ async function drainQueue() {
       if (!lock) return
       for (const job of await queue.uploads.toArray()) {
         try {
-          await sendUpload(job)
+          if (!job.uploaded) {
+            await sendUpload(job)
+            await queue.uploads.update(job.id, { uploaded: true })
+          }
+          if (job.file.type.startsWith('video/') ||
+              (job.file.size > 3 * 1024 * 1024 && ['image/jpeg', 'image/png', 'image/webp'].includes(job.file.type))) {
+            await send(job.subject, { action: 'optimize', uploadId: job.id })
+          }
           await queue.uploads.delete(job.id)
           window.dispatchEvent(new CustomEvent(changed, { detail: job.subject }))
         } catch {

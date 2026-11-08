@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { randomUUID } from 'node:crypto'
 import sharp from 'sharp'
+import { optimizeMedia } from '../server/optimize-media.js'
 
 const limit = 3 * 1024 * 1024
 const drive = 'https://www.googleapis.com/drive/v3'
@@ -51,6 +52,11 @@ export default async function handler(req, res) {
         body: JSON.stringify({ name: entry.title, mimeType: folderType, parents: [root], appProperties: { subject } }),
       })
       folder = (await response.json()).id
+    }
+    if (req.method === 'POST' && req.body?.action === 'optimize') {
+      const { uploadId } = req.body
+      if (typeof uploadId !== 'string' || !safeId.test(uploadId)) return res.status(400).end()
+      return res.json(await optimizeUpload(request, folder, uploadId))
     }
     if (req.method === 'GET' && !req.query.file) {
       if (req.query.folder === '1') return res.status(204).end()
@@ -118,6 +124,47 @@ export default async function handler(req, res) {
   } catch {
     return res.status(502).json({ error: 'Não foi possível acessar o Google Drive.' })
   }
+}
+
+async function optimizeUpload(request, folder, uploadId) {
+  const [file] = await list(request, `'${folder}' in parents and appProperties has { key='uploadId' and value='${uploadId}' }`)
+  if (!file) throw new Error('Upload not found')
+  const metadata = await (await request(`${drive}/files/${file.id}?fields=size,appProperties`)).json()
+  const size = Number(metadata.size)
+  if (metadata.appProperties?.optimization || !Number.isSafeInteger(size) || size <= 0 || size > maxUpload) return { optimized: false }
+  const mark = async status => request(`${drive}/files/${file.id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ appProperties: { optimization: status } }),
+  })
+  const original = await request(`${drive}/files/${file.id}?alt=media`)
+  let converted
+  try {
+    converted = await optimizeMedia(Buffer.from(await original.arrayBuffer()), file.mimeType)
+  } catch {
+    await mark('original')
+    return { optimized: false }
+  }
+  if (!converted) {
+    await mark('original')
+    return { optimized: false }
+  }
+  const start = await request(`${uploadUrl}/${file.id}?uploadType=resumable`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json', 'X-Upload-Content-Type': converted.type,
+      'X-Upload-Content-Length': String(converted.bytes.length),
+    },
+    body: JSON.stringify({
+      name: file.name.replace(/\.[^.]+$/, '') + '.' + converted.extension,
+      mimeType: converted.type, appProperties: { optimization: 'converted' },
+    }),
+  })
+  const session = start.headers.get('location')
+  if (!session?.startsWith(uploadUrl + '?') && !session?.startsWith(uploadUrl + '/')) throw new Error('Invalid replacement session')
+  await request(session, {
+    method: 'PUT', redirect: 'error', headers: { 'Content-Type': converted.type }, body: converted.bytes,
+  })
+  return { optimized: true }
 }
 
 async function uploadChunk({ session, base64, offset, size }, res) {
