@@ -211,7 +211,7 @@ function App() {
     }
   }
 
-  function list(items: Entry[]) {
+  function list(items: Entry[], empty = 'Nenhum item por aqui.') {
     const ordered = [...items].sort((a, b) =>
       (a.startTime || '24:00').localeCompare(b.startTime || '24:00'))
     return ordered.length ? <ul>{ordered.map(entry => <li key={entry.id}>
@@ -227,7 +227,7 @@ function App() {
         onClick={() => void togglePayment(entry)}>
         {entries.some(item => item.id === paymentId(entry.id, month)) ? 'Desfazer pagamento' : 'Marcar como pago'}
       </button>}
-    </li>)}</ul> : <p>Nenhum item por aqui.</p>
+    </li>)}</ul> : <p className="empty-state">{empty}</p>
   }
 
   function navigate(area: typeof tab) {
@@ -263,10 +263,10 @@ function App() {
     {error && <p role="alert">{error}</p>}
     {!ready && !error && <p>Carregando…</p>}
     {ready && tab === 'Início' && <div className="grid dashboard">
-      <section className="panel"><div className="toolbar"><h2>Hoje</h2><button className="text-action" onClick={() => { setDay(today); setRoutine('Dia'); navigate('Semana') }}>Ver agenda</button></div>{list(entries.filter(item => item.area === 'Semana' && occursOn(item, today)))}</section>
-      <section className="panel"><h2>Próximas provas</h2>{list(exams)}</section>
-      <section className="panel"><h2>Revisões pendentes</h2>{list(entries.filter(item => item.kind === 'Revisão' && !item.done && item.date && item.date <= today))}</section>
-      <section className="panel"><div className="toolbar"><h2>Resumo financeiro</h2><button className="text-action" onClick={() => { setMonth(today.slice(0, 7)); navigate('Finanças') }}>Ver finanças</button></div><dl className="dashboard-money">
+      <section className="panel dashboard-today"><div className="toolbar"><h2>Hoje</h2><button className="text-action" onClick={() => { setDay(today); setRoutine('Dia'); navigate('Semana') }}>Ver agenda</button></div>{list(entries.filter(item => item.area === 'Semana' && occursOn(item, today)), 'Nenhum compromisso para hoje.')}</section>
+      <section className="panel dashboard-exams"><h2>Próximas provas</h2>{list(exams, 'Nenhuma prova marcada.')}</section>
+      <section className="panel dashboard-reviews"><h2>Revisões pendentes</h2>{list(entries.filter(item => item.kind === 'Revisão' && !item.done && item.date && item.date <= today), 'Nenhuma revisão pendente.')}</section>
+      <section className="panel dashboard-finance"><div className="toolbar"><h2>Resumo financeiro</h2><button className="text-action" onClick={() => { setMonth(today.slice(0, 7)); navigate('Finanças') }}>Ver finanças</button></div><dl className="dashboard-money">
         <div><dt>Disponível</dt><dd>{money.format(current.available)}</dd></div>
         <div><dt>Reservado</dt><dd>{money.format(current.reserved)}</dd></div>
         <div><dt>Gasto</dt><dd>{money.format(current.spent)}</dd></div>
