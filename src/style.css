@@ -130,3 +130,14 @@ main:has(.calendar-add:not([hidden])) { padding-bottom: calc(5rem + env(safe-are
   main:has(.calendar-add:not([hidden])) { padding-bottom: calc(9rem + env(safe-area-inset-bottom)); }
 }
 .calendar-add:not([hidden]) { display: inline-flex; align-items: center; gap: .35rem; }
+.commitment-page > :not(.commitment-editor):not([role="alert"]) { display: none; }
+.commitment-editor { max-width: 32rem; margin-inline: auto; }
+.commitment-editor form { gap: 1rem; }
+.commitment-editor .check input { appearance: none; border: 1.5px solid var(--forest); border-radius: 50%; display: grid; place-items: center; }
+.commitment-editor .check input:checked { background: var(--lime); }
+.commitment-editor .check input:checked::before { content: "✓"; color: var(--forest); font-weight: 800; }
+.commitment-date { display: grid; gap: .3rem; }
+.commitment-date > button { text-align: left; }
+.date-dialog { width: min(24rem, calc(100% - 2rem)); max-height: 90dvh; padding: 1rem; border: 1px solid var(--border); border-radius: 1rem; color: var(--ink); }
+.date-dialog::backdrop { background: #112c0f55; backdrop-filter: blur(5px); }
+.date-dialog > button { margin-top: .75rem; }

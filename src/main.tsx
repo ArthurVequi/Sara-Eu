@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { createRoot } from 'react-dom/client'
 import { cloud, enableMorningPush } from './cloud'
 import { DriveFiles, prepareDriveFolders, startDriveQueue } from './DriveFiles'
@@ -150,10 +150,6 @@ function App() {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!editing || !editing.title.trim()) return
-    if (editing.area === 'Semana' && editing.endTime && (!editing.startTime || editing.endTime <= editing.startTime)) {
-      setError('Informe um horário de término posterior ao início.')
-      return
-    }
     try {
       await db.entries.put({ ...editing, title: editing.title.trim() })
       await refresh()
@@ -241,7 +237,7 @@ function App() {
     window.scrollTo(0, 0)
   }
 
-  return <main>
+  return <main className={editing?.area === 'Semana' ? 'commitment-page' : undefined}>
     <header className="app-header"><span className="brand"><span aria-hidden="true">✓</span> Organiza Aí</span><span className="badge" role="status">{cloud ? message || 'Espaço compartilhado' : 'Modo local · demonstração'}</span></header>
     {cloud && <details className="notifications"><summary>Lembretes</summary><div className="toolbar">
       <button onClick={() => void enableMorningPush().then(() => setPushMessage('Lembrete matinal ativado neste aparelho.')).catch(error => setPushMessage(error.message))}>Ativar lembrete matinal</button>
@@ -335,7 +331,8 @@ function App() {
       }))}
     </section>}
     {tab === 'Estudos' && fileTarget && cloud && <DriveFiles key={fileTarget} subject={fileTarget} title={fileTarget === subject ? 'Arquivos da matéria' : 'Arquivos do tema'} />}
-    {editing && <section key={editing.id} className="panel" aria-label="Editar item"><form onSubmit={save}>
+    {editing && <section key={editing.id} className={editing.area === 'Semana' ? 'panel commitment-editor' : 'panel'} aria-label="Editar item"><form onSubmit={save}>
+      {editing.area === 'Semana' && <h1>{entries.some(item => item.id === editing.id) ? 'Editar compromisso' : 'Novo compromisso'}</h1>}
       <label>Título<input autoFocus required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>
       {editing.area !== 'Semana' && <label>Tipo<select value={editing.kind ?? 'Gasto'} onChange={event => setEditing({ ...editing, kind: event.target.value as Kind })}>
         {(editing.area === 'Estudos' ? studyKinds : financeKinds).map(kind => <option key={kind}>{kind}</option>)}
@@ -346,12 +343,11 @@ function App() {
       {editing.area === 'Finanças' && <label>Categoria<input value={editing.category ?? ''} onChange={event => setEditing({ ...editing, category: event.target.value })} /></label>}
       {editing.kind === 'Conta' && <label>Cor da conta<input type="color" value={editing.color ?? '#112c0f'} onChange={event => setEditing({ ...editing, color: event.target.value })} /></label>}
       {editing.kind === 'Parcela' && <label>Número de parcelas<input required type="number" min="2" step="1" value={editing.installments ?? ''} onChange={event => setEditing({ ...editing, installments: event.target.valueAsNumber || undefined })} /></label>}
-      <label>Detalhes<input value={editing.detail} onChange={event => setEditing({ ...editing, detail: event.target.value })} /></label>
-      <label>Data<input type="date" required={editing.weekly || editing.kind === 'Prova' || editing.kind === 'Revisão' || editing.area === 'Finanças' && editing.kind !== 'Conta'} value={editing.date ?? ''} onChange={event => setEditing({ ...editing, date: event.target.value })} /></label>
-      {editing.area === 'Semana' && <div className="grid">
-        <label>Início<input type="time" value={editing.startTime ?? ''} onChange={event => setEditing({ ...editing, startTime: event.target.value })} /></label>
-        <label>Término<input type="time" value={editing.endTime ?? ''} onChange={event => setEditing({ ...editing, endTime: event.target.value })} /></label>
-      </div>}
+      {editing.area !== 'Semana' && <label>Detalhes<input value={editing.detail} onChange={event => setEditing({ ...editing, detail: event.target.value })} /></label>}
+      {editing.area === 'Semana' ? <>
+        <CommitmentDate value={editing.date} onChange={date => setEditing({ ...editing, date })} />
+        <label>Horário<input type="time" value={editing.startTime ?? ''} onChange={event => setEditing({ ...editing, startTime: event.target.value, endTime: undefined })} /></label>
+      </> : <label>Data<input type="date" required={editing.kind === 'Prova' || editing.kind === 'Revisão' || editing.area === 'Finanças' && editing.kind !== 'Conta'} value={editing.date ?? ''} onChange={event => setEditing({ ...editing, date: event.target.value })} /></label>}
       {editing.area === 'Semana' && <label className="check"><input type="checkbox" checked={!!editing.weekly} onChange={event => setEditing({ ...editing, weekly: event.target.checked })} /> Repetir toda semana</label>}
       {editing.area === 'Finanças' && <label>{editing.kind === 'Parcela' ? 'Valor de cada parcela' : 'Valor'} (ARS)<input required type="number" min={editing.kind === 'Conta' ? undefined : '0.01'} step="0.01" value={editing.amount ?? ''} onChange={event => setEditing({ ...editing, amount: event.target.value ? Number(event.target.value) : undefined })} /></label>}
       {editing.kind === 'Revisão' && <label className="check"><input type="checkbox" checked={!!editing.done} onChange={event => setEditing({ ...editing, done: event.target.checked })} /> Revisão concluída</label>}
@@ -362,6 +358,39 @@ function App() {
       </div>
     </form></section>}
   </main>
+}
+
+function CommitmentDate({ value, onChange }: { value?: string; onChange: (date: string) => void }) {
+  const dialog = useRef<HTMLDialogElement>(null)
+  const [first, setFirst] = useState((value || today).slice(0, 7) + '-01')
+  const start = new Date(first)
+  const padding = (start.getUTCDay() + 6) % 7
+  const length = Number(shiftDay(shiftDay(first, 32).slice(0, 7) + '-01', -1).slice(-2))
+  return <div className="commitment-date">
+    <span>Data</span>
+    <button type="button" aria-haspopup="dialog" onClick={() => {
+      setFirst((value || today).slice(0, 7) + '-01')
+      dialog.current?.showModal()
+    }}>{value ? weekDayLabel.format(new Date(value)) : 'Escolher data'}</button>
+    <dialog ref={dialog} className="date-dialog" aria-labelledby="commitment-calendar-title">
+      <h2 id="commitment-calendar-title">Escolher data</h2>
+      <div className="toolbar week-controls">
+        <button type="button" aria-label="Mês anterior" onClick={() => setFirst(shiftDay(first, -1).slice(0, 7) + '-01')}>‹</button>
+        <strong aria-live="polite">{new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(start)}</strong>
+        <button type="button" aria-label="Próximo mês" onClick={() => setFirst(shiftDay(first, length))}>›</button>
+      </div>
+      <div className="month-grid">
+        {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(label => <span key={label}>{label}</span>)}
+        {Array.from({ length: padding }, (_, index) => <span key={index} />)}
+        {Array.from({ length }, (_, index) => {
+          const date = shiftDay(first, index)
+          return <button type="button" key={date} aria-pressed={date === value} aria-label={weekDayLabel.format(new Date(date))}
+            onClick={() => { onChange(date); dialog.current?.close() }}>{index + 1}</button>
+        })}
+      </div>
+      <button type="button" onClick={() => dialog.current?.close()}>Cancelar</button>
+    </dialog>
+  </div>
 }
 
 function financeSummary(entries: Entry[], month: string) {
