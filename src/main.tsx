@@ -289,7 +289,7 @@ function App() {
     {ready && tab !== 'Início' && <section className="panel">
       <div className="toolbar"><h2>{tab === 'Semana' ? routine : tab === 'Estudos' ? 'Matérias e conteúdos' : 'Lançamentos em pesos argentinos'}</h2>
         <button className="primary" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: tab, date: tab === 'Finanças' ? month === today.slice(0, 7) ? today : month + '-01' : day, weekly: tab === 'Semana' && routine === 'Recorrentes', kind: tab === 'Estudos' ? subject ? 'Tema' : 'Matéria' : tab === 'Finanças' ? 'Gasto' : undefined, parent: tab === 'Estudos' ? subject || undefined : undefined })}>+ Adicionar</button></div>
-      {tab === 'Semana' && <div className="toolbar">{(['Dia', 'Semana', 'Mês', 'Recorrentes'] as const).map(view => <button key={view} aria-pressed={routine === view} onClick={() => setRoutine(view)}>{view}</button>)}</div>}
+      {tab === 'Semana' && <div className="week-views">{(['Dia', 'Semana', 'Mês', 'Recorrentes'] as const).map(view => <button key={view} aria-pressed={routine === view} onClick={() => setRoutine(view)}>{view}</button>)}</div>}
       {tab === 'Semana' && routine === 'Dia' && <label>Dia da agenda<input type="date" value={day} onChange={event => setDay(event.target.value || today)} /></label>}
       {tab === 'Semana' && routine === 'Mês' && <>
         <label>Mês da agenda<input type="month" value={agendaMonth} onChange={event => setDay(event.target.value ? event.target.value + '-01' : today)} /></label>
@@ -309,9 +309,9 @@ function App() {
       </>}
       {tab === 'Semana' && routine === 'Semana' && <>
         <div className="toolbar week-controls">
-          <button onClick={() => setDay(shiftDay(day, -7))}>Semana anterior</button>
+          <button aria-label="Semana anterior" onClick={() => setDay(shiftDay(day, -7))}>‹</button>
           <button onClick={() => setDay(today)}>Hoje</button>
-          <button onClick={() => setDay(shiftDay(day, 7))}>Próxima semana</button>
+          <button aria-label="Próxima semana" onClick={() => setDay(shiftDay(day, 7))}>›</button>
         </div>
         {week.map(date => <section className="week-day" key={date}>
           <h3><button onClick={() => { setDay(date); setRoutine('Dia') }}>
