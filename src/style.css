@@ -1,5 +1,12 @@
 :root { --forest: #112c0f; --white: #ffffff; --lime: #c9fa6a; --teal: #13b195; --ink: #112c0f; --muted: #415840; --tint: #f3f9ed; --border: #d7e6d0; }
-:root { font-family: system-ui, sans-serif; color: var(--ink); background: var(--white); }
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+:root { font-family: "Bricolage Grotesque", system-ui, sans-serif; color: var(--ink); background: var(--white); }
 * { box-sizing: border-box; }
 body { margin: 0; }
 main { width: min(100%, 62rem); margin: auto; padding: 1.25rem 1rem max(2rem, env(safe-area-inset-bottom)); }
@@ -45,7 +52,6 @@ select { font: inherit; color: inherit; border: 1px solid var(--border); border-
 .month-grid small { font-size: .65rem; }
 
 :root {
-  font-family: "DM Sans", system-ui, sans-serif;
   color: var(--ink);
   background: var(--white);
 }

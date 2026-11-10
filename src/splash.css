@@ -26,3 +26,7 @@
 }
 
 .splash-icon, .splash-name { opacity: 0; }
+
+.splash-name {
+  font-weight: 800;
+}

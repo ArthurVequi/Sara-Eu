@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   plugins: [VitePWA({
     registerType: 'autoUpdate',
-    workbox: { importScripts: ['/push-worker.js'] },
+    workbox: { importScripts: ['/push-worker.js'], globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'] },
     manifest: {
       name: 'Organiza Aí',
       short_name: 'Organiza Aí',
