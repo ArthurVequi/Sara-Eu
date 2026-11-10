@@ -11,7 +11,7 @@ export default defineConfig({
       lang: 'pt-BR',
       start_url: '/',
       display: 'standalone',
-      theme_color: '#0131cd',
+      theme_color: '#112c0f',
       background_color: '#ffffff',
       icons: [{ src: '/organiza.svg', sizes: 'any', type: 'image/svg+xml' }],
     },
