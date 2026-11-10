@@ -129,3 +129,4 @@ main:has(.calendar-add:not([hidden])) { padding-bottom: calc(5rem + env(safe-are
   .calendar-add { bottom: calc(5rem + env(safe-area-inset-bottom)); }
   main:has(.calendar-add:not([hidden])) { padding-bottom: calc(9rem + env(safe-area-inset-bottom)); }
 }
+.calendar-add:not([hidden]) { display: inline-flex; align-items: center; gap: .35rem; }
