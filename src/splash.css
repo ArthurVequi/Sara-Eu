@@ -1,0 +1,28 @@
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  overflow: clip;
+  background: var(--forest);
+  color: var(--white);
+}
+
+.splash-brand {
+  display: flex;
+  align-items: center;
+  gap: clamp(.2rem, 1.5vw, .75rem);
+  white-space: nowrap;
+  font-size: clamp(1.35rem, 7.5vw, 3.5rem);
+  font-weight: 750;
+  letter-spacing: -.04em;
+}
+
+.splash-icon {
+  display: block;
+  width: clamp(2.8rem, 15vw, 5.5rem);
+  aspect-ratio: 1;
+}
+
+.splash-icon, .splash-name { opacity: 0; }

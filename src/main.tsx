@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { cloud, enableMorningPush } from './cloud'
 import { DriveFiles, prepareDriveFolders, startDriveQueue } from './DriveFiles'
 import './style.css'
+import { SplashScreen } from './SplashScreen'
 
 type Area = 'Semana' | 'Estudos' | 'Finanças'
 type Kind = 'Matéria' | 'Tema' | 'Prova' | 'Revisão' | 'Conta' | 'Gasto' | 'Conta fixa' | 'Parcela' | 'Limite'
@@ -274,7 +275,7 @@ function App() {
       <h1>{tab === 'Início' ? 'Olá, Sara!' : tab === 'Semana' ? 'Minha semana' : tab}</h1>
     </section>
     {error && <p role="alert">{error}</p>}
-    {!ready && !error && <p>Carregando…</p>}
+    {!ready && !error && <p role="status">Carregando…</p>}
     {ready && tab === 'Início' && <div className="grid dashboard">
       <section className="panel dashboard-today"><div className="toolbar"><h2>Hoje</h2><button className="text-action" onClick={() => { setDay(today); setRoutine('Dia'); navigate('Semana') }}>Ver agenda</button></div>{list(entries.filter(item => item.area === 'Semana' && occursOn(item, today)), 'Nenhum compromisso para hoje.')}</section>
       <section className="panel dashboard-exams"><h2>Próximas provas</h2>{list(exams, 'Nenhuma prova marcada.')}</section>
@@ -432,4 +433,4 @@ function changes(a: Entry[], b: Entry[]) {
   </li>)}</ul> : <p>Nenhum item diferente nesta versão.</p>
 }
 
-createRoot(document.getElementById('root')!).render(<App />)
+createRoot(document.getElementById('root')!).render(<SplashScreen><App /></SplashScreen>)
