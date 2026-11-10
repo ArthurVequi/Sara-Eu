@@ -122,3 +122,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   }
   .app-nav button { min-height: 52px; font-size: .82rem; }
 }
+.calendar-add { position: fixed; z-index: 9; right: max(1rem, env(safe-area-inset-right)); bottom: calc(1rem + env(safe-area-inset-bottom)); box-shadow: 0 4px 14px #112c0f24; }
+.month-grid button[aria-current]:not([aria-pressed="true"]) { background: var(--tint); }
+main:has(.calendar-add:not([hidden])) { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
+@media (max-width: 600px) {
+  .calendar-add { bottom: calc(5rem + env(safe-area-inset-bottom)); }
+  main:has(.calendar-add:not([hidden])) { padding-bottom: calc(9rem + env(safe-area-inset-bottom)); }
+}

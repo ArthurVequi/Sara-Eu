@@ -59,7 +59,6 @@ function App() {
   const [ready, setReady] = useState(false)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<Entry>()
-  const [routine, setRoutine] = useState<'Dia' | 'Semana' | 'Mês' | 'Recorrentes'>(linkedDay ? 'Dia' : 'Semana')
   const [message, setMessage] = useState('')
   const [conflict, setConflict] = useState<Snapshot>()
   const [subject, setSubject] = useState('')
@@ -67,8 +66,6 @@ function App() {
   const [day, setDay] = useState(linkedDay && /^\d{4}-\d{2}-\d{2}$/.test(linkedDay) ? linkedDay : today)
   const [pushMessage, setPushMessage] = useState('')
   const [month, setMonth] = useState(today.slice(0, 7))
-  const monday = shiftDay(day, -((new Date(day + 'T00:00:00Z').getUTCDay() + 6) % 7))
-  const week = Array.from({ length: 7 }, (_, index) => shiftDay(monday, index))
   const accounts = entries.filter(entry => entry.kind === 'Conta')
   const subjects = entries.filter(entry => entry.kind === 'Matéria')
   const themes = entries.filter(entry => entry.kind === 'Tema' && entry.parent === subject)
@@ -277,7 +274,7 @@ function App() {
     {error && <p role="alert">{error}</p>}
     {!ready && !error && <p role="status">Carregando…</p>}
     {ready && tab === 'Início' && <div className="grid dashboard">
-      <section className="panel dashboard-today"><div className="toolbar"><h2>Hoje</h2><button className="text-action" onClick={() => { setDay(today); setRoutine('Dia'); navigate('Semana') }}>Ver agenda</button></div>{list(entries.filter(item => item.area === 'Semana' && occursOn(item, today)), 'Nenhum compromisso para hoje.')}</section>
+      <section className="panel dashboard-today"><div className="toolbar"><h2>Hoje</h2><button className="text-action" onClick={() => { setDay(today); navigate('Semana') }}>Ver agenda</button></div>{list(entries.filter(item => item.area === 'Semana' && occursOn(item, today)), 'Nenhum compromisso para hoje.')}</section>
       <section className="panel dashboard-exams"><h2>Próximas provas</h2>{list(exams, 'Nenhuma prova marcada.')}</section>
       <section className="panel dashboard-reviews"><h2>Revisões pendentes</h2>{list(entries.filter(item => item.kind === 'Revisão' && !item.done && item.date && item.date <= today), 'Nenhuma revisão pendente.')}</section>
       <section className="panel dashboard-finance"><div className="toolbar"><h2>Resumo financeiro</h2><button className="text-action" onClick={() => { setMonth(today.slice(0, 7)); navigate('Finanças') }}>Ver finanças</button></div><dl className="dashboard-money">
@@ -287,20 +284,9 @@ function App() {
       </dl></section>
     </div>}
     {ready && tab !== 'Início' && <section className="panel">
-      <div className="toolbar"><h2>{tab === 'Semana' ? routine : tab === 'Estudos' ? 'Matérias e conteúdos' : 'Lançamentos em pesos argentinos'}</h2>
-        <button className="primary" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: tab, date: tab === 'Finanças' ? month === today.slice(0, 7) ? today : month + '-01' : day, weekly: tab === 'Semana' && routine === 'Recorrentes', kind: tab === 'Estudos' ? subject ? 'Tema' : 'Matéria' : tab === 'Finanças' ? 'Gasto' : undefined, parent: tab === 'Estudos' ? subject || undefined : undefined })}>{tab === 'Semana' ? '+ Novo compromisso' : '+ Adicionar'}</button></div>
-      {tab === 'Semana' && <div className="week-views">{(['Dia', 'Semana', 'Mês', 'Recorrentes'] as const).map(view => <button key={view} aria-pressed={routine === view} onClick={() => setRoutine(view)}>{view}</button>)}</div>}
-      {tab === 'Semana' && routine === 'Dia' && <div className="toolbar week-controls day-controls" role="group" aria-label="Navegação por dia">
-        <button aria-label="Dia anterior" onClick={() => setDay(shiftDay(day, -1))}>‹</button>
-        <div className="week-period">
-          <button className="day-date" aria-label={`Abrir calendário mensal. ${weekDayLabel.format(new Date(day))}`} onClick={() => setRoutine('Mês')}>
-            {weekDayLabel.format(new Date(day))}
-          </button>
-          {day !== today && <button onClick={() => setDay(today)}>Voltar para hoje</button>}
-        </div>
-        <button aria-label="Próximo dia" onClick={() => setDay(shiftDay(day, 1))}>›</button>
-      </div>}
-      {tab === 'Semana' && routine === 'Mês' && <>
+      <div className="toolbar"><h2>{tab === 'Semana' ? 'Calendário' : tab === 'Estudos' ? 'Matérias e conteúdos' : 'Lançamentos em pesos argentinos'}</h2>
+        <button hidden={tab === 'Semana' && !!editing} className={tab === 'Semana' ? 'primary calendar-add' : 'primary'} onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: tab, date: tab === 'Finanças' ? month === today.slice(0, 7) ? today : month + '-01' : day, kind: tab === 'Estudos' ? subject ? 'Tema' : 'Matéria' : tab === 'Finanças' ? 'Gasto' : undefined, parent: tab === 'Estudos' ? subject || undefined : undefined })}>{tab === 'Semana' ? '+ Novo compromisso' : '+ Adicionar'}</button></div>
+      {tab === 'Semana' && <>
         <div className="toolbar week-controls" role="group" aria-label="Navegação por mês">
           <button aria-label="Mês anterior" onClick={() => setDay(shiftDay(firstDay, -1).slice(0, 7) + '-01')}>‹</button>
           <div className="week-period"><strong aria-live="polite">{new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(firstDay))}</strong></div>
@@ -314,31 +300,19 @@ function App() {
             const count = entries.filter(item => item.area === 'Semana' && occursOn(item, date)).length
             return <button key={date} aria-current={date === today ? 'date' : undefined}
               aria-label={`${weekDayLabel.format(new Date(date))}, ${count} itens`}
-              onClick={() => { setDay(date); setRoutine('Dia') }}>
+              aria-pressed={date === day} onClick={() => setDay(date)}>
               {index + 1}{count > 0 && <small>{count} itens</small>}
             </button>
           })}
         </div>
       </>}
-      {tab === 'Semana' && routine === 'Semana' && <>
-        <div className="toolbar week-controls">
-          <button aria-label="Semana anterior" onClick={() => setDay(shiftDay(day, -7))}>‹</button>
-          <div className="week-period">
-            <strong aria-live="polite">{new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'short', timeZone: 'UTC' }).formatRange(new Date(monday), new Date(week[6]))}</strong>
-            <button onClick={() => setDay(today)}>Voltar para hoje</button>
-          </div>
-          <button aria-label="Próxima semana" onClick={() => setDay(shiftDay(day, 7))}>›</button>
-        </div>
-        {week.map(date => <section className="week-day" key={date}>
-          <h3><button onClick={() => { setDay(date); setRoutine('Dia') }}>
-            {weekDayLabel.format(new Date(date))}{date === today && ' · Hoje'}
-          </button></h3>
-          {list(entries.filter(item => item.area === 'Semana' && occursOn(item, date)))}
-        </section>)}
-        {entries.some(item => item.area === 'Semana' && !item.date) && <section className="week-day">
-          <h3>Sem data</h3>{list(entries.filter(item => item.area === 'Semana' && !item.date))}
-        </section>}
-      </>}
+      {tab === 'Semana' && <section className="week-day">
+        <h3>{weekDayLabel.format(new Date(day))}</h3>
+        {list(entries.filter(item => item.area === 'Semana' && occursOn(item, day)), 'Nenhum compromisso neste dia.')}
+      </section>}
+      {tab === 'Semana' && entries.some(item => item.area === 'Semana' && !item.date) && <section className="week-day">
+        <h3>Sem data</h3>{list(entries.filter(item => item.area === 'Semana' && !item.date))}
+      </section>}
       {tab === 'Estudos' && <label>Matéria<select value={subject} onChange={event => { setSubject(event.target.value); setTheme('') }}>
         <option value="">Todas</option>{subjects.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
       </select></label>}
@@ -354,16 +328,15 @@ function App() {
         })}</div>
         {limit !== undefined && <p>Limite do mês: {money.format(limit)}{spent > limit ? ' · Limite ultrapassado' : ''}</p>}
       </>}
-      {!(tab === 'Semana' && (routine === 'Semana' || routine === 'Mês')) && list(entries.filter(item => {
+      {tab !== 'Semana' && list(entries.filter(item => {
         if (item.area !== tab) return false
-        if (tab === 'Semana') return routine === 'Recorrentes' ? item.weekly : !item.date || occursOn(item, day)
         if (tab === 'Estudos') return !subject || item.id === subject || item.parent === subject
         return accounts.includes(item) || (expenses.includes(item) && (!item.paymentFor || !planned.some(plan => plan.id === item.paymentFor))) || planned.includes(item) || (item.kind === 'Limite' && item.date?.startsWith(month))
       }))}
     </section>}
     {tab === 'Estudos' && fileTarget && cloud && <DriveFiles key={fileTarget} subject={fileTarget} title={fileTarget === subject ? 'Arquivos da matéria' : 'Arquivos do tema'} />}
-    {editing && <section className="panel" aria-label="Editar item"><form onSubmit={save}>
-      <label>Título<input required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>
+    {editing && <section key={editing.id} className="panel" aria-label="Editar item"><form onSubmit={save}>
+      <label>Título<input autoFocus required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>
       {editing.area !== 'Semana' && <label>Tipo<select value={editing.kind ?? 'Gasto'} onChange={event => setEditing({ ...editing, kind: event.target.value as Kind })}>
         {(editing.area === 'Estudos' ? studyKinds : financeKinds).map(kind => <option key={kind}>{kind}</option>)}
       </select></label>}
