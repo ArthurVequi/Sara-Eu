@@ -39,3 +39,6 @@ select { font: inherit; color: inherit; border: 1px solid #e8c6d3; border-radius
 .week-day { border-top: 1px solid #f1d8e1; padding: .55rem 0; }
 .week-day h3, .week-day p { margin: .25rem 0; }
 .week-day h3 button { text-transform: capitalize; text-align: left; }
+.month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .25rem; text-align: center; }
+.month-grid button { min-width: 0; padding-inline: 0; }
+.month-grid small { font-size: .65rem; }

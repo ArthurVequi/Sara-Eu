@@ -7,7 +7,7 @@ import './style.css'
 
 type Area = 'Semana' | 'Estudos' | 'Finanças'
 type Kind = 'Matéria' | 'Tema' | 'Prova' | 'Revisão' | 'Conta' | 'Gasto' | 'Conta fixa' | 'Parcela' | 'Limite'
-type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number }
+type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number; paymentFor?: string }
 const areas: Area[] = ['Semana', 'Estudos', 'Finanças']
 const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date())
 const linkedDay = new URLSearchParams(location.search).get('agenda')
@@ -52,10 +52,11 @@ function App() {
   const [ready, setReady] = useState(false)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<Entry>()
-  const [routine, setRoutine] = useState<'Dia' | 'Semana' | 'Recorrentes'>(linkedDay ? 'Dia' : 'Semana')
+  const [routine, setRoutine] = useState<'Dia' | 'Semana' | 'Mês' | 'Recorrentes'>(linkedDay ? 'Dia' : 'Semana')
   const [message, setMessage] = useState('')
   const [conflict, setConflict] = useState<Snapshot>()
   const [subject, setSubject] = useState('')
+  const [theme, setTheme] = useState('')
   const [day, setDay] = useState(linkedDay && /^\d{4}-\d{2}-\d{2}$/.test(linkedDay) ? linkedDay : today)
   const [pushMessage, setPushMessage] = useState('')
   const [month, setMonth] = useState(today.slice(0, 7))
@@ -63,6 +64,13 @@ function App() {
   const week = Array.from({ length: 7 }, (_, index) => shiftDay(monday, index))
   const accounts = entries.filter(entry => entry.kind === 'Conta')
   const subjects = entries.filter(entry => entry.kind === 'Matéria')
+  const themes = entries.filter(entry => entry.kind === 'Tema' && entry.parent === subject)
+  const fileTarget = themes.some(entry => entry.id === theme) ? theme : subject
+  const agendaMonth = day.slice(0, 7)
+  const firstDay = agendaMonth + '-01'
+  const firstWeekday = (new Date(firstDay + 'T00:00:00Z').getUTCDay() + 6) % 7
+  const [agendaYear, agendaMonthNumber] = agendaMonth.split('-').map(Number)
+  const daysInMonth = new Date(Date.UTC(agendaYear, agendaMonthNumber, 0)).getUTCDate()
   const { expenses, planned, available, reserved, spent } = financeSummary(entries, month)
   const current = financeSummary(entries, today.slice(0, 7))
   const exams = entries.filter(entry => entry.kind === 'Prova' && entry.date && entry.date >= today)
@@ -163,6 +171,23 @@ function App() {
     }
   }
 
+  async function togglePayment(entry: Entry) {
+    const id = paymentId(entry.id, month)
+    try {
+      await db.transaction('rw', db.entries, async () => {
+        if (await db.entries.get(id)) await db.entries.delete(id)
+        else await db.entries.add({
+          id, area: 'Finanças', title: entry.title, detail: 'Pagamento',
+          paymentFor: entry.id, date: month + '-01', amount: entry.amount, category: entry.category,
+        })
+      })
+      await refresh()
+      void synchronize()
+    } catch {
+      setError('Não foi possível atualizar o pagamento.')
+    }
+  }
+
   async function remove(entry: Entry) {
     const note = entry.kind === 'Matéria' ? '\nOs arquivos da matéria permanecerão no Google Drive.' : ''
     if (!window.confirm(`Excluir “${entry.title}” do espaço compartilhado?${note}`)) return
@@ -197,6 +222,11 @@ function App() {
       </button>
       {entry.kind === 'Conta' && <span className="account-color" style={{ backgroundColor: entry.color }} aria-hidden="true" />}
       {entry.amount !== undefined && <strong>{money.format(entry.amount)}</strong>}
+      {tab === 'Finanças' && (entry.kind === 'Conta fixa' || entry.kind === 'Parcela') && <button
+        aria-pressed={entries.some(item => item.id === paymentId(entry.id, month))}
+        onClick={() => void togglePayment(entry)}>
+        {entries.some(item => item.id === paymentId(entry.id, month)) ? 'Desfazer pagamento' : 'Marcar como pago'}
+      </button>}
     </li>)}</ul> : <p>Nenhum item por aqui.</p>
   }
 
@@ -236,8 +266,24 @@ function App() {
     {ready && tab !== 'Início' && <section className="panel">
       <div className="toolbar"><h2>{tab === 'Semana' ? routine : tab === 'Estudos' ? 'Matérias e conteúdos' : 'Lançamentos em pesos argentinos'}</h2>
         <button className="primary" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: tab, date: tab === 'Finanças' ? month === today.slice(0, 7) ? today : month + '-01' : day, weekly: tab === 'Semana' && routine === 'Recorrentes', kind: tab === 'Estudos' ? subject ? 'Tema' : 'Matéria' : tab === 'Finanças' ? 'Gasto' : undefined, parent: tab === 'Estudos' ? subject || undefined : undefined })}>+ Adicionar</button></div>
-      {tab === 'Semana' && <div className="toolbar">{(['Dia', 'Semana', 'Recorrentes'] as const).map(view => <button key={view} aria-pressed={routine === view} onClick={() => setRoutine(view)}>{view}</button>)}</div>}
+      {tab === 'Semana' && <div className="toolbar">{(['Dia', 'Semana', 'Mês', 'Recorrentes'] as const).map(view => <button key={view} aria-pressed={routine === view} onClick={() => setRoutine(view)}>{view}</button>)}</div>}
       {tab === 'Semana' && routine === 'Dia' && <label>Dia da agenda<input type="date" value={day} onChange={event => setDay(event.target.value || today)} /></label>}
+      {tab === 'Semana' && routine === 'Mês' && <>
+        <label>Mês da agenda<input type="month" value={agendaMonth} onChange={event => setDay(event.target.value ? event.target.value + '-01' : today)} /></label>
+        <div className="month-grid">
+          {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(label => <span key={label}>{label}</span>)}
+          {Array.from({ length: firstWeekday }, (_, index) => <span key={index} />)}
+          {Array.from({ length: daysInMonth }, (_, index) => {
+            const date = shiftDay(firstDay, index)
+            const count = entries.filter(item => item.area === 'Semana' && occursOn(item, date)).length
+            return <button key={date} aria-current={date === today ? 'date' : undefined}
+              aria-label={`${weekDayLabel.format(new Date(date))}, ${count} itens`}
+              onClick={() => { setDay(date); setRoutine('Dia') }}>
+              {index + 1}{count > 0 && <small>{count} itens</small>}
+            </button>
+          })}
+        </div>
+      </>}
       {tab === 'Semana' && routine === 'Semana' && <>
         <div className="toolbar week-controls">
           <button onClick={() => setDay(shiftDay(day, -7))}>Semana anterior</button>
@@ -254,8 +300,11 @@ function App() {
           <h3>Sem data</h3>{list(entries.filter(item => item.area === 'Semana' && !item.date))}
         </section>}
       </>}
-      {tab === 'Estudos' && <label>Matéria<select value={subject} onChange={event => setSubject(event.target.value)}>
+      {tab === 'Estudos' && <label>Matéria<select value={subject} onChange={event => { setSubject(event.target.value); setTheme('') }}>
         <option value="">Todas</option>{subjects.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
+      </select></label>}
+      {tab === 'Estudos' && themes.length > 0 && <label>Arquivos do tema<select value={theme} onChange={event => setTheme(event.target.value)}>
+        <option value="">Arquivos gerais da matéria</option>{themes.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
       </select></label>}
       {tab === 'Finanças' && <>
         <label>Mês<input type="month" value={month} onChange={event => setMonth(event.target.value || today.slice(0, 7))} /></label>
@@ -266,14 +315,14 @@ function App() {
         })}</div>
         {limit !== undefined && <p>Limite do mês: {money.format(limit)}{spent > limit ? ' · Limite ultrapassado' : ''}</p>}
       </>}
-      {!(tab === 'Semana' && routine === 'Semana') && list(entries.filter(item => {
+      {!(tab === 'Semana' && (routine === 'Semana' || routine === 'Mês')) && list(entries.filter(item => {
         if (item.area !== tab) return false
         if (tab === 'Semana') return routine === 'Recorrentes' ? item.weekly : !item.date || occursOn(item, day)
         if (tab === 'Estudos') return !subject || item.id === subject || item.parent === subject
-        return accounts.includes(item) || expenses.includes(item) || planned.includes(item) || (item.kind === 'Limite' && item.date?.startsWith(month))
+        return accounts.includes(item) || (expenses.includes(item) && (!item.paymentFor || !planned.some(plan => plan.id === item.paymentFor))) || planned.includes(item) || (item.kind === 'Limite' && item.date?.startsWith(month))
       }))}
     </section>}
-    {tab === 'Estudos' && subject && cloud && <DriveFiles key={subject} subject={subject} />}
+    {tab === 'Estudos' && fileTarget && cloud && <DriveFiles key={fileTarget} subject={fileTarget} title={fileTarget === subject ? 'Arquivos da matéria' : 'Arquivos do tema'} />}
     {editing && <section className="panel" aria-label="Editar item"><form onSubmit={save}>
       <label>Título<input required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>
       {editing.area !== 'Semana' && <label>Tipo<select value={editing.kind ?? 'Gasto'} onChange={event => setEditing({ ...editing, kind: event.target.value as Kind })}>
@@ -307,8 +356,12 @@ function financeSummary(entries: Entry[], month: string) {
   const expenses = entries.filter(entry => entry.area === 'Finanças' && (!entry.kind || entry.kind === 'Gasto') && entry.date?.startsWith(month))
   const planned = entries.filter(entry => isReserved(entry, month))
   const total = (items: Entry[]) => items.reduce((sum, entry) => sum + (entry.amount ?? 0), 0)
-  const reserved = total(planned)
+  const reserved = total(planned.filter(entry => !expenses.some(expense => expense.id === paymentId(entry.id, month))))
   return { expenses, planned, reserved, spent: total(expenses), available: total(entries.filter(entry => entry.kind === 'Conta')) - reserved }
+}
+
+function paymentId(entryId: string, month: string) {
+  return `payment:${entryId}:${month}`
 }
 
 function sameEntries(a: Entry[], b: Entry[]) {

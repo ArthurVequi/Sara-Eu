@@ -113,7 +113,7 @@ export async function prepareDriveFolders(subjects: string[]) {
   }
 }
 
-export function DriveFiles({ subject }: { subject: string }) {
+export function DriveFiles({ subject, title }: { subject: string; title: string }) {
   const [files, setFiles] = useState<DriveFile[]>([])
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
@@ -177,7 +177,7 @@ export function DriveFiles({ subject }: { subject: string }) {
   }
 
   return <section className="panel">
-    <h2>Arquivos da matéria</h2>
+    <h2>{title}</h2>
     <button disabled={busy} onClick={() => void refresh().then(() => setStatus('')).catch(error => setStatus(error.message))}>Carregar arquivos do Drive</button>
     <label>Enviar arquivos (até 100 MB por arquivo)<input type="file" multiple disabled={busy} onChange={event => {
       const selected = Array.from(event.target.files ?? [])

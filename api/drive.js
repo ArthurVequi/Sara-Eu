@@ -25,8 +25,13 @@ export default async function handler(req, res) {
     const subject = req.query.subject
     if (typeof subject !== 'string' || !safeId.test(subject)) return res.status(400).end()
     const { data: workspace } = await client.from('organiza_workspace').select('entries').eq('id', 1).single()
-    const entry = workspace?.entries.find(item => item.id === subject && item.kind === 'Matéria')
-    if (!entry) return res.status(404).json({ error: 'A matéria precisa estar sincronizada.' })
+    const entry = workspace?.entries.find(item => item.id === subject && ['Matéria', 'Tema'].includes(item.kind))
+    const parent = entry?.kind === 'Tema'
+      ? workspace.entries.find(item => item.id === entry.parent && item.kind === 'Matéria')
+      : entry
+    if (!parent || typeof parent.id !== 'string' || !safeId.test(parent.id)) {
+      return res.status(404).json({ error: 'A matéria e o tema precisam estar sincronizados.' })
+    }
 
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -44,15 +49,8 @@ export default async function handler(req, res) {
     }
     const root = process.env.DRIVE_STUDIES_FOLDER_ID || await studiesFolder(request)
     if (!safeId.test(root)) throw new Error('Drive root')
-    const folders = await list(request, `'${root}' in parents and mimeType = '${folderType}' and appProperties has { key='subject' and value='${subject}' }`)
-    let folder = folders[0]?.id
-    if (!folder) {
-      const response = await request(`${drive}/files`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: entry.title, mimeType: folderType, parents: [root], appProperties: { subject } }),
-      })
-      folder = (await response.json()).id
-    }
+    const subjectFolder = await entryFolder(request, root, 'subject', parent)
+    const folder = entry.kind === 'Tema' ? await entryFolder(request, subjectFolder, 'theme', entry) : subjectFolder
     if (req.method === 'POST' && req.body?.action === 'optimize') {
       const { uploadId } = req.body
       if (typeof uploadId !== 'string' || !safeId.test(uploadId)) return res.status(400).end()
@@ -60,7 +58,7 @@ export default async function handler(req, res) {
     }
     if (req.method === 'GET' && !req.query.file) {
       if (req.query.folder === '1') return res.status(204).end()
-      return res.json(await list(request, `'${folder}' in parents`))
+      return res.json(await list(request, `'${folder}' in parents and mimeType != '${folderType}'`))
     }
     if (req.method === 'GET' && safeId.test(req.query.file)) {
       const file = req.query.file
@@ -124,6 +122,16 @@ export default async function handler(req, res) {
   } catch {
     return res.status(502).json({ error: 'Não foi possível acessar o Google Drive.' })
   }
+}
+
+async function entryFolder(request, parent, key, entry) {
+  const folders = await list(request, `'${parent}' in parents and mimeType = '${folderType}' and appProperties has { key='${key}' and value='${entry.id}' }`)
+  if (folders[0]) return folders[0].id
+  const response = await request(`${drive}/files?fields=id`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: entry.title, mimeType: folderType, parents: [parent], appProperties: { [key]: entry.id } }),
+  })
+  return (await response.json()).id
 }
 
 async function optimizeUpload(request, folder, uploadId) {
