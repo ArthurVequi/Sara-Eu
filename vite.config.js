@@ -12,7 +12,7 @@ export default defineConfig({
       start_url: '/',
       display: 'standalone',
       theme_color: '#112c0f',
-      background_color: '#ffffff',
+      background_color: '#edf4e9',
       icons: [{ src: '/organiza.svg', sizes: 'any', type: 'image/svg+xml' }],
     },
   })],

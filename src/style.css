@@ -6,7 +6,7 @@
   font-style: normal;
   font-display: swap;
 }
-:root { font-family: "Bricolage Grotesque", system-ui, sans-serif; color: var(--ink); background: var(--white); }
+:root { --page-background: #edf4e9; font-family: "Bricolage Grotesque", system-ui, sans-serif; color: var(--ink); background: var(--page-background); }
 * { box-sizing: border-box; }
 body { margin: 0; }
 main { width: min(100%, 62rem); margin: auto; padding: 1.25rem 1rem max(2rem, env(safe-area-inset-bottom)); }
@@ -63,7 +63,7 @@ select { font: inherit; color: inherit; border: 1px solid var(--border); border-
 
 :root {
   color: var(--ink);
-  background: var(--white);
+  background: var(--page-background);
 }
 main { max-width: 60rem; padding-inline: clamp(1rem, 4vw, 2rem); }
 .app-header { margin-bottom: .65rem; }
