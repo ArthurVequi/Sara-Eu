@@ -51,6 +51,8 @@ select { font: inherit; color: inherit; border: 1px solid var(--border); border-
 .week-period { text-align: center; min-width: 0; }
 .week-period strong { display: block; font-size: .95rem; }
 .week-period button { color: var(--forest); border: 0; font-size: .82rem; text-decoration: underline; }
+.day-controls .day-date { display: block; margin: auto; font-size: .95rem; font-weight: 750; text-decoration: none; background: var(--tint); }
+.day-controls .day-date::first-letter { text-transform: uppercase; }
 .week-day { border-top: 1px solid var(--border); padding: .55rem 0; }
 .week-day h3, .week-day p { margin: .25rem 0; }
 .week-day h3 button { text-align: left; border: 0; padding-inline: 0; }

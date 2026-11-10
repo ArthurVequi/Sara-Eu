@@ -290,7 +290,16 @@ function App() {
       <div className="toolbar"><h2>{tab === 'Semana' ? routine : tab === 'Estudos' ? 'Matérias e conteúdos' : 'Lançamentos em pesos argentinos'}</h2>
         <button className="primary" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: tab, date: tab === 'Finanças' ? month === today.slice(0, 7) ? today : month + '-01' : day, weekly: tab === 'Semana' && routine === 'Recorrentes', kind: tab === 'Estudos' ? subject ? 'Tema' : 'Matéria' : tab === 'Finanças' ? 'Gasto' : undefined, parent: tab === 'Estudos' ? subject || undefined : undefined })}>{tab === 'Semana' ? '+ Novo compromisso' : '+ Adicionar'}</button></div>
       {tab === 'Semana' && <div className="week-views">{(['Dia', 'Semana', 'Mês', 'Recorrentes'] as const).map(view => <button key={view} aria-pressed={routine === view} onClick={() => setRoutine(view)}>{view}</button>)}</div>}
-      {tab === 'Semana' && routine === 'Dia' && <label>Dia da agenda<input type="date" value={day} onChange={event => setDay(event.target.value || today)} /></label>}
+      {tab === 'Semana' && routine === 'Dia' && <div className="toolbar week-controls day-controls" role="group" aria-label="Navegação por dia">
+        <button aria-label="Dia anterior" onClick={() => setDay(shiftDay(day, -1))}>‹</button>
+        <div className="week-period">
+          <button className="day-date" aria-label={`Abrir calendário mensal. ${weekDayLabel.format(new Date(day))}`} onClick={() => setRoutine('Mês')}>
+            {weekDayLabel.format(new Date(day))}
+          </button>
+          {day !== today && <button onClick={() => setDay(today)}>Voltar para hoje</button>}
+        </div>
+        <button aria-label="Próximo dia" onClick={() => setDay(shiftDay(day, 1))}>›</button>
+      </div>}
       {tab === 'Semana' && routine === 'Mês' && <>
         <label>Mês da agenda<input type="month" value={agendaMonth} onChange={event => setDay(event.target.value ? event.target.value + '-01' : today)} /></label>
         <div className="month-grid">
