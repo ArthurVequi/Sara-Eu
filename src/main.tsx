@@ -301,7 +301,11 @@ function App() {
         <button aria-label="Próximo dia" onClick={() => setDay(shiftDay(day, 1))}>›</button>
       </div>}
       {tab === 'Semana' && routine === 'Mês' && <>
-        <label>Mês da agenda<input type="month" value={agendaMonth} onChange={event => setDay(event.target.value ? event.target.value + '-01' : today)} /></label>
+        <div className="toolbar week-controls" role="group" aria-label="Navegação por mês">
+          <button aria-label="Mês anterior" onClick={() => setDay(shiftDay(firstDay, -1).slice(0, 7) + '-01')}>‹</button>
+          <div className="week-period"><strong aria-live="polite">{new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(firstDay))}</strong></div>
+          <button aria-label="Próximo mês" onClick={() => setDay(shiftDay(firstDay, daysInMonth))}>›</button>
+        </div>
         <div className="month-grid">
           {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(label => <span key={label}>{label}</span>)}
           {Array.from({ length: firstWeekday }, (_, index) => <span key={index} />)}
