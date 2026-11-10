@@ -346,7 +346,13 @@ function App() {
       {editing.area !== 'Semana' && <label>Detalhes<input value={editing.detail} onChange={event => setEditing({ ...editing, detail: event.target.value })} /></label>}
       {editing.area === 'Semana' ? <>
         <CommitmentDate value={editing.date} onChange={date => setEditing({ ...editing, date })} />
-        <label>Horário<input type="time" value={editing.startTime ?? ''} onChange={event => setEditing({ ...editing, startTime: event.target.value, endTime: undefined })} /></label>
+        <label>Horário<input type="text" inputMode="numeric" placeholder="HH:MM"
+          pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Digite um horário de 00:00 a 23:59"
+          value={editing.startTime ?? ''} onChange={event => {
+            const digits = event.target.value.replace(/\D/g, '').slice(0, 4)
+            const startTime = digits.length > 2 ? digits.slice(0, 2) + ':' + digits.slice(2) : digits
+            setEditing({ ...editing, startTime, endTime: undefined })
+          }} /></label>
       </> : <label>Data<input type="date" required={editing.kind === 'Prova' || editing.kind === 'Revisão' || editing.area === 'Finanças' && editing.kind !== 'Conta'} value={editing.date ?? ''} onChange={event => setEditing({ ...editing, date: event.target.value })} /></label>}
       {editing.area === 'Semana' && <label className="check"><input type="checkbox" checked={!!editing.weekly} onChange={event => setEditing({ ...editing, weekly: event.target.checked })} /> Repetir toda semana</label>}
       {editing.area === 'Finanças' && <label>{editing.kind === 'Parcela' ? 'Valor de cada parcela' : 'Valor'} (ARS)<input required type="number" min={editing.kind === 'Conta' ? undefined : '0.01'} step="0.01" value={editing.amount ?? ''} onChange={event => setEditing({ ...editing, amount: event.target.value ? Number(event.target.value) : undefined })} /></label>}

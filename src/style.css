@@ -135,7 +135,14 @@ main:has(.calendar-add:not([hidden])) { padding-bottom: calc(5rem + env(safe-are
 .commitment-editor form { gap: 1rem; }
 .commitment-editor .check input { appearance: none; border: 1.5px solid var(--forest); border-radius: 50%; display: grid; place-items: center; }
 .commitment-editor .check input:checked { background: var(--lime); }
-.commitment-editor .check input:checked::before { content: "✓"; color: var(--forest); font-weight: 800; }
+.commitment-editor .check input:checked::before {
+  content: "";
+  width: .28rem;
+  height: .52rem;
+  border: solid var(--forest);
+  border-width: 0 2px 2px 0;
+  transform: translateY(-1px) rotate(45deg);
+}
 .commitment-date { display: grid; gap: .3rem; }
 .commitment-date > button { text-align: left; }
 .date-dialog { width: min(24rem, calc(100% - 2rem)); max-height: 90dvh; padding: 1rem; border: 1px solid var(--border); border-radius: 1rem; color: var(--ink); }
