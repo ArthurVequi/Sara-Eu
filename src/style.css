@@ -42,3 +42,49 @@ select { font: inherit; color: inherit; border: 1px solid #e8c6d3; border-radius
 .month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .25rem; text-align: center; }
 .month-grid button { min-width: 0; padding-inline: 0; }
 .month-grid small { font-size: .65rem; }
+
+:root {
+  font-family: "DM Sans", system-ui, sans-serif;
+  color: #382632;
+  background: #fff7fa;
+}
+main { max-width: 60rem; padding-inline: clamp(1rem, 4vw, 2rem); }
+.app-header { margin-bottom: .65rem; }
+.brand { display: inline-flex; align-items: center; gap: .5rem; letter-spacing: -.035em; }
+.brand > span { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: .7rem; background: #f8dae7; }
+.badge { background: #f8e7ee; color: #674452; }
+.notifications { margin-bottom: .75rem; }
+.notifications summary { width: fit-content; padding: .65rem 0; color: #81334f; cursor: pointer; }
+.notifications .toolbar { justify-content: flex-start; padding-bottom: .5rem; }
+.hero {
+  background: linear-gradient(115deg, #f8dce8, #fdebf3);
+  border: 1px solid #f7d8e5;
+  padding: clamp(1.3rem, 5vw, 2.5rem);
+  margin-bottom: 1.2rem;
+}
+.hero h1 { font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.05; letter-spacing: -.065em; }
+.hero .hero-date { margin: 0 0 .6rem; text-transform: capitalize; color: #694651; letter-spacing: 0; font-size: .9rem; }
+.panel { padding: clamp(.9rem, 3vw, 1.35rem); border-radius: 1.25rem; box-shadow: 0 4px 14px #80334f08; }
+.dashboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dashboard .panel { min-width: 0; margin: 0; }
+.dashboard-money { margin: .6rem 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(6.4rem, 1fr)); gap: .5rem; }
+.dashboard-money > div { min-width: 0; padding: .7rem; border-radius: .85rem; background: #fcf0f5; }
+.dashboard-money dt { color: #674452; font-size: .8rem; }
+.dashboard-money dd { margin: .2rem 0 0; font-weight: 750; overflow-wrap: anywhere; }
+.text-action { border: 0; color: #81334f; font-size: .9rem; font-weight: 650; }
+.app-nav { border: 1px solid #f1d8e1; padding: .35rem; border-radius: 1rem; background: #fff; }
+.app-nav button { display: grid; place-items: center; gap: .15rem; border-color: transparent; }
+.app-nav button span { font-size: 1.2rem; line-height: 1; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid #993e65; outline-offset: 2px; }
+@media (max-width: 600px) {
+  main { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+  .dashboard { grid-template-columns: minmax(0, 1fr); }
+  .app-nav {
+    position: fixed;
+    z-index: 10;
+    inset: auto .6rem calc(.5rem + env(safe-area-inset-bottom)) .6rem;
+    margin: 0;
+    box-shadow: 0 6px 25px #62304724;
+  }
+  .app-nav button { min-height: 52px; font-size: .82rem; }
+}

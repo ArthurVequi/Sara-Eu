@@ -230,12 +230,19 @@ function App() {
     </li>)}</ul> : <p>Nenhum item por aqui.</p>
   }
 
+  function navigate(area: typeof tab) {
+    setTab(area)
+    setEditing(undefined)
+    setError('')
+    window.scrollTo(0, 0)
+  }
+
   return <main>
-    <header><span className="brand">✓ Organiza Aí</span><span className="badge">{cloud ? message || 'Espaço compartilhado' : 'Modo local · demonstração'}</span></header>
-    {cloud && <div className="toolbar">
+    <header className="app-header"><span className="brand"><span aria-hidden="true">✓</span> Organiza Aí</span><span className="badge" role="status">{cloud ? message || 'Espaço compartilhado' : 'Modo local · demonstração'}</span></header>
+    {cloud && <details className="notifications"><summary>Lembretes</summary><div className="toolbar">
       <button onClick={() => void enableMorningPush().then(() => setPushMessage('Lembrete matinal ativado neste aparelho.')).catch(error => setPushMessage(error.message))}>Ativar lembrete matinal</button>
       <span role="status">{pushMessage}</span>
-    </div>}
+    </div></details>}
     {conflict && <section className="panel">
       <h2>Alterações em conflito</h2>
       <p>Compare os itens que serão substituídos antes de escolher.</p>
@@ -248,19 +255,21 @@ function App() {
         <button onClick={() => void synchronize('remote')}>Manter do servidor</button>
       </div>
     </section>}
-    <nav aria-label="Navegação principal">{(['Início', ...areas] as const).map(area => <button key={area} aria-current={tab === area ? 'page' : undefined} onClick={() => { setTab(area); setEditing(undefined) }}>{area}</button>)}</nav>
-    <section className="hero"><p>SEU ORGANIZADOR PESSOAL</p><h1>{tab === 'Início' ? 'Olá, Sara!' : tab === 'Semana' ? 'Minha semana' : tab}</h1>
-      <p>{tab === 'Início' ? 'Veja o que importa hoje, em um só lugar.' : 'Toque em um item para editar.'}</p></section>
+    <nav className="app-nav" aria-label="Navegação principal">{(['Início', ...areas] as const).map((area, index) => <button key={area} aria-current={tab === area ? 'page' : undefined} onClick={() => navigate(area)}><span aria-hidden="true">{['⌂', '▦', '▤', '$'][index]}</span>{area}</button>)}</nav>
+    <section className="hero">
+      {tab === 'Início' && <p className="hero-date">{new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full', timeZone: 'UTC' }).format(new Date(today))}</p>}
+      <h1>{tab === 'Início' ? 'Olá, Sara!' : tab === 'Semana' ? 'Minha semana' : tab}</h1>
+    </section>
     {error && <p role="alert">{error}</p>}
     {!ready && !error && <p>Carregando…</p>}
-    {ready && tab === 'Início' && <div className="grid">
-      <section className="panel"><h2>Hoje</h2>{list(entries.filter(item => item.area === 'Semana' && occursOn(item, today)))}</section>
+    {ready && tab === 'Início' && <div className="grid dashboard">
+      <section className="panel"><div className="toolbar"><h2>Hoje</h2><button className="text-action" onClick={() => { setDay(today); setRoutine('Dia'); navigate('Semana') }}>Ver agenda</button></div>{list(entries.filter(item => item.area === 'Semana' && occursOn(item, today)))}</section>
       <section className="panel"><h2>Próximas provas</h2>{list(exams)}</section>
       <section className="panel"><h2>Revisões pendentes</h2>{list(entries.filter(item => item.kind === 'Revisão' && !item.done && item.date && item.date <= today))}</section>
-      <section className="panel"><h2>Resumo financeiro do mês</h2><dl>
-        <dt>Disponível</dt><dd>{money.format(current.available)}</dd>
-        <dt>Reservado</dt><dd>{money.format(current.reserved)}</dd>
-        <dt>Gasto</dt><dd>{money.format(current.spent)}</dd>
+      <section className="panel"><div className="toolbar"><h2>Resumo financeiro</h2><button className="text-action" onClick={() => { setMonth(today.slice(0, 7)); navigate('Finanças') }}>Ver finanças</button></div><dl className="dashboard-money">
+        <div><dt>Disponível</dt><dd>{money.format(current.available)}</dd></div>
+        <div><dt>Reservado</dt><dd>{money.format(current.reserved)}</dd></div>
+        <div><dt>Gasto</dt><dd>{money.format(current.spent)}</dd></div>
       </dl></section>
     </div>}
     {ready && tab !== 'Início' && <section className="panel">
