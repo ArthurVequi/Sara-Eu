@@ -327,7 +327,7 @@ function App() {
           <strong>{item.title}</strong>
         </button>
         <button type="button" className="subject-edit" aria-label={`Editar ${item.title}`} onClick={() => setEditing(item)}>
-          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m16 3 5 5M4 15 16 3a2.12 2.12 0 0 1 3 0l2 2a2.12 2.12 0 0 1 0 3L9 20l-6 1z" />
           </svg>
         </button></div>
@@ -360,7 +360,7 @@ function App() {
           setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Estudos', kind,
             date: kind === 'Prova' || kind === 'Revisão' ? day : undefined,
             parent: kind === 'Matéria' ? undefined : subject || undefined })
-        }}>{kind === 'Tema' ? 'Novo tema' : `Nova ${kind.toLowerCase()}`}</button>)}
+        }}>{kind === 'Tema' ? 'Novo conteúdo' : `Nova ${kind.toLowerCase()}`}</button>)}
       </div>
       <button className="primary study-toggle" type="button" aria-label={studyActionsOpen ? 'Fechar opções' : 'Adicionar em Estudos'}
         aria-expanded={studyActionsOpen} aria-controls="study-create-options" onClick={() => setStudyActionsOpen(open => !open)}>
@@ -370,14 +370,15 @@ function App() {
     {editing && <ItemEditor key={editing.id} modal={editing.area !== 'Finanças'} onCancel={() => { setEditing(undefined); setError('') }}>
       <section className={fullEditor ? 'panel commitment-editor' : 'panel'} aria-label="Editar item"><form onSubmit={save}>
       {editing.area === 'Semana' && <h1 id="item-editor-title">{entries.some(item => item.id === editing.id) ? 'Editar compromisso' : 'Novo compromisso'}</h1>}
-      {editing.area === 'Estudos' && <h1 id="item-editor-title">{entries.some(item => item.id === editing.id) ? `Editar ${editing.kind?.toLowerCase() ?? 'item'}` : editing.kind === 'Tema' ? 'Novo tema' : `Nova ${editing.kind?.toLowerCase() ?? 'matéria'}`}</h1>}
+      {editing.area === 'Estudos' && <h1 id="item-editor-title">{entries.some(item => item.id === editing.id) ? `Editar ${editing.kind === 'Tema' ? 'conteúdo' : editing.kind?.toLowerCase() ?? 'item'}` : editing.kind === 'Tema' ? 'Novo conteúdo' : `Nova ${editing.kind?.toLowerCase() ?? 'matéria'}`}</h1>}
       {editing.area !== 'Finanças' && error && <p role="alert">{error}</p>}
-      <label>{editing.kind === 'Matéria' ? 'Nome da matéria' : editing.kind === 'Tema' ? 'Nome do tema' : 'Título'}<input autoFocus required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>
+      <label>{editing.kind === 'Matéria' ? 'Nome da matéria' : editing.kind === 'Tema' ? 'Nome do conteúdo' : 'Título'}<input autoFocus required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>
       {editing.area === 'Finanças' && <label>Tipo<select value={editing.kind ?? 'Gasto'} onChange={event => setEditing({ ...editing, kind: event.target.value as Kind })}>
         {financeKinds.map(kind => <option key={kind}>{kind}</option>)}
       </select></label>}
-      {((editing.area === 'Estudos' && editing.kind !== 'Matéria') || (editing.area === 'Finanças' && ['Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto'))) && <label>{editing.area === 'Estudos' ? 'Matéria' : 'Conta'}<select value={editing.parent ?? ''} onChange={event => setEditing({ ...editing, parent: event.target.value || undefined })}>
-        <option value="">Selecionar</option>{(editing.area === 'Estudos' ? subjects : accounts).map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
+      {editing.area === 'Estudos' && editing.kind !== 'Matéria' && <SubjectPicker items={subjects} value={editing.parent} onChange={parent => setEditing({ ...editing, parent })} />}
+      {editing.area === 'Finanças' && ['Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && <label>Conta<select value={editing.parent ?? ''} onChange={event => setEditing({ ...editing, parent: event.target.value || undefined })}>
+        <option value="">Selecionar</option>{accounts.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
       </select></label>}
       {editing.area === 'Finanças' && <label>Categoria<input value={editing.category ?? ''} onChange={event => setEditing({ ...editing, category: event.target.value })} /></label>}
       {editing.kind === 'Conta' && <label>Cor da conta<input type="color" value={editing.color ?? '#112c0f'} onChange={event => setEditing({ ...editing, color: event.target.value })} /></label>}
@@ -418,6 +419,24 @@ function ItemEditor({ modal, onCancel, children }: { modal: boolean; onCancel: (
   if (!modal) return children
   return <dialog ref={dialog} className="study-editor-dialog" aria-labelledby="item-editor-title"
     onCancel={event => { event.preventDefault(); onCancel() }}>{children}</dialog>
+}
+
+function SubjectPicker({ items, value, onChange }: { items: Entry[]; value?: string; onChange: (id?: string) => void }) {
+  const dialog = useRef<HTMLDialogElement>(null)
+  const choose = (id?: string) => { onChange(id); dialog.current?.close() }
+  return <div className="commitment-date">
+    <span>Matéria</span>
+    <button type="button" aria-label="Selecionar matéria" aria-haspopup="dialog" onClick={() => dialog.current?.showModal()}>
+      {items.find(item => item.id === value)?.title ?? 'Selecionar matéria'}
+    </button>
+    <dialog ref={dialog} className="date-dialog weekday-dialog subject-picker" aria-labelledby="subject-picker-title">
+      <h2 id="subject-picker-title">Selecionar matéria</h2>
+      <div>{items.map(item => <button key={item.id} type="button" aria-pressed={item.id === value} onClick={() => choose(item.id)}>{item.title}</button>)}
+        <button type="button" aria-pressed={!value} onClick={() => choose()}>Sem matéria vinculada</button>
+      </div>
+      <button type="button" onClick={() => dialog.current?.close()}>Cancelar</button>
+    </dialog>
+  </div>
 }
 
 const weekdays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']

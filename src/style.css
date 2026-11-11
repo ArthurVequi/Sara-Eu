@@ -195,3 +195,5 @@ main:has(.study-actions) { padding-bottom: calc(5rem + env(safe-area-inset-botto
 .subject-content > label, .subject-content > .panel { margin-top: .65rem; }
 .weekday-dialog > div { display: grid; gap: .3rem; margin-top: .65rem; }
 .weekday-dialog > div button { text-align: left; }
+.subject-picker { max-height: min(32rem, 85dvh); }
+.subject-picker button { overflow-wrap: anywhere; }
