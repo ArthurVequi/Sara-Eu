@@ -320,15 +320,19 @@ function App() {
         <h3>Sem data</h3>{list(entries.filter(item => item.area === 'Semana' && !item.date))}
       </section>}
       {tab === 'Estudos' && (subjects.length ? <ul className="subject-list">{subjects.map(item => <li key={item.id}>
-        <button className="entry subject-toggle" aria-expanded={subject === item.id} onClick={() => {
+        <div className="subject-row"><button className="entry subject-toggle" aria-expanded={subject === item.id} onClick={() => {
           setSubject(subject === item.id ? '' : item.id)
           setTheme('')
         }}>
-          <strong>{item.title}</strong><span aria-hidden="true">{subject === item.id ? '⌃' : '⌄'}</span>
+          <strong>{item.title}</strong>
         </button>
+        <button type="button" className="subject-edit" aria-label={`Editar ${item.title}`} onClick={() => setEditing(item)}>
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m16 3 5 5M4 15 16 3a2.12 2.12 0 0 1 3 0l2 2a2.12 2.12 0 0 1 0 3L9 20l-6 1z" />
+          </svg>
+        </button></div>
         {subject === item.id && <div className="subject-content">
           {list(entries.filter(entry => entry.parent === item.id), 'Nenhum conteúdo cadastrado.')}
-          <button type="button" onClick={() => setEditing(item)}>Editar matéria</button>
           {themes.length > 0 && <label>Arquivos do tema<select value={theme} onChange={event => setTheme(event.target.value)}>
             <option value="">Arquivos gerais da matéria</option>{themes.map(entry => <option key={entry.id} value={entry.id}>{entry.title}</option>)}
           </select></label>}
