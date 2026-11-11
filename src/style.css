@@ -198,4 +198,5 @@ main:has(.study-actions) { padding-bottom: calc(5rem + env(safe-area-inset-botto
 .subject-picker { max-height: min(32rem, 85dvh); }
 .subject-picker button { overflow-wrap: anywhere; }
 .study-deadlines summary, .study-subjects summary { cursor: pointer; font-weight: 750; }
+.study-subjects > .subject-list > li:first-child { border-top: 1px solid var(--border); }
 .study-deadlines .empty-state { font-size: .8rem; color: #5b6d57; }
