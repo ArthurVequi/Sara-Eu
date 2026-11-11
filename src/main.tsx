@@ -360,6 +360,7 @@ function App() {
           setSubject(subject === item.id ? '' : item.id)
           setTheme('')
         }}>
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
           <strong>{item.title}</strong>
         </button>
         <StudyRowActions title={item.title} onEdit={() => setEditing(item)} onRemove={() => void remove(item)} /></div>
@@ -367,6 +368,7 @@ function App() {
           {themes.length > 0 && <ul className="subject-list">{themes.map(content => <li key={content.id}>
             <div className="subject-row"><button type="button" className="entry subject-toggle" aria-expanded={theme === content.id}
               onClick={() => setTheme(theme === content.id ? '' : content.id)}>
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
               <strong>{content.title}</strong>
             </button>
             <StudyRowActions title={content.title} onEdit={() => setEditing(content)} onRemove={() => void remove(content)} /></div>
