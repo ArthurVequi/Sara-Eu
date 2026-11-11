@@ -244,7 +244,7 @@ function App() {
         onClick={() => void togglePayment(entry)}>
         {entries.some(item => item.id === paymentId(entry.id, month)) ? 'Desfazer pagamento' : 'Marcar como pago'}
       </button>}
-    </li>)}</ul> : <p className="empty-state">{empty}</p>
+    </li>)}</ul> : empty ? <p className="empty-state">{empty}</p> : null
   }
 
   function navigate(area: typeof tab) {
