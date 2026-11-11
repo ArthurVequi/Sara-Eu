@@ -255,6 +255,19 @@ function App() {
     </li>)}</ul> : empty ? <p className="empty-state">{empty}</p> : null
   }
 
+  function financeList(items: Entry[]) {
+    return items.length ? <ul className="finance-entries">{items.map(entry => <li key={entry.id}>
+      <time className="finance-entry-date" dateTime={entry.date} aria-label={entry.date ? `Data: ${entry.date}` : undefined}>
+        {entry.date ? `${entry.date.slice(8, 10)}/${entry.date.slice(5, 7)}` : ''}
+      </time>
+      <button className="entry finance-entry" onClick={() => setEditing(entry)}>
+        <strong>{entry.title}</strong>
+        <small>{entry.kind ?? 'Gasto'}</small>
+      </button>
+      <strong className="finance-entry-value">{money.format(entry.amount ?? 0)}</strong>
+    </li>)}</ul> : <p className="empty-state">Nenhum lançamento neste mês.</p>
+  }
+
   function navigate(area: typeof tab) {
     if (area === 'Estudos' && tab !== 'Estudos') {
       setDeadlineMessage(previous => {
@@ -405,10 +418,10 @@ function App() {
         })}</div>
         {limit !== undefined && <p>Limite do mês: {money.format(limit)}{spent > limit ? ' · Limite ultrapassado' : ''}</p>}
       </>}
-      {tab === 'Finanças' && list(entries.filter(item => {
+      {tab === 'Finanças' && financeList(entries.filter(item => {
         if (item.area !== tab) return false
         return accounts.includes(item) || (expenses.includes(item) && (!item.paymentFor || !planned.some(plan => plan.id === item.paymentFor))) || planned.includes(item) || (item.kind === 'Limite' && item.date?.startsWith(month))
-      }), 'Nenhum item por aqui.', 'finance-entries')}
+      }))}
     </section>}
     {ready && tab === 'Estudos' && !editing && <div className="study-actions">
       <div id="study-create-options" hidden={!studyActionsOpen}>
