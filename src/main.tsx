@@ -70,6 +70,10 @@ function App() {
   const [month, setMonth] = useState(today.slice(0, 7))
   const accounts = entries.filter(entry => entry.kind === 'Conta')
   const subjects = entries.filter(entry => entry.kind === 'Matéria')
+  const studyDeadlines = entries
+    .filter(entry => (entry.kind === 'Prova' || entry.kind === 'Revisão') && !entry.done && entry.date && entry.date >= today)
+    .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
+    .slice(0, 3)
   const themes = entries.filter(entry => entry.kind === 'Tema' && entry.parent === subject)
   const agendaMonth = day.slice(0, 7)
   const firstDay = agendaMonth + '-01'
@@ -287,6 +291,22 @@ function App() {
         <div><dt>Gasto</dt><dd>{money.format(current.spent)}</dd></div>
       </dl></section>
     </div>}
+    {ready && tab === 'Estudos' && studyDeadlines.length > 0 && <section className="panel study-deadlines">
+      <h2>Próximos prazos</h2>
+      <ul>{studyDeadlines.map(entry => <li key={entry.id}>
+        <button className="entry" onClick={() => {
+          setSubject(entry.parent ?? '')
+          setTheme(entry.contentId ?? '')
+          setStudyActionsOpen(false)
+          setEditing(entry)
+        }}>
+          <strong>{entry.title}</strong>
+          <small>{[entry.kind, weekDayLabel.format(new Date(entry.date!)),
+            subjects.find(item => item.id === entry.parent)?.title,
+            entries.find(item => item.id === entry.contentId)?.title].filter(Boolean).join(' · ')}</small>
+        </button>
+      </li>)}</ul>
+    </section>}
     {ready && tab !== 'Início' && <section className="panel">
       {tab !== 'Estudos' && <>
       <div className="toolbar"><h2>{tab === 'Semana' ? 'Calendário' : 'Lançamentos em pesos argentinos'}</h2>
