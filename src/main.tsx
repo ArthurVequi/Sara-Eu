@@ -27,7 +27,6 @@ const examples: Entry[] = [
   { id: 'demo-account', area: 'Finanças', title: 'Carteira', detail: 'Saldo informado', kind: 'Conta', amount: 120000, color: '#112c0f' },
   { id: 'demo-expense', area: 'Finanças', title: 'Material de estudo', detail: '', kind: 'Gasto', category: 'Estudos', parent: 'demo-account', date: today, amount: 18500 },
 ]
-const studyKinds: Kind[] = ['Matéria', 'Tema', 'Prova', 'Revisão']
 const financeKinds: Kind[] = ['Gasto', 'Conta', 'Conta fixa', 'Parcela', 'Limite']
 type Snapshot = { version: number; entries: Entry[] }
 const db = new Dexie(cloud ? 'organiza-ai-shared' : 'organiza-ai') as Dexie & {
@@ -151,6 +150,10 @@ function App() {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!editing || !editing.title.trim()) return
+    if (!editing.date && (editing.weekly || editing.kind === 'Prova' || editing.kind === 'Revisão')) {
+      setError('Escolha uma data antes de salvar.')
+      return
+    }
     try {
       await db.entries.put({ ...editing, title: editing.title.trim() })
       await refresh()
@@ -239,7 +242,8 @@ function App() {
     window.scrollTo(0, 0)
   }
 
-  return <main className={editing?.area === 'Semana' ? 'commitment-page' : undefined}>
+  const fullEditor = editing && editing.area !== 'Finanças'
+  return <main className={fullEditor ? 'commitment-page' : undefined}>
     <header className="app-header"><span className="brand"><span aria-hidden="true">✓</span> Organiza Aí</span><span className="badge" role="status">{cloud ? message || 'Espaço compartilhado' : 'Modo local · demonstração'}</span></header>
     {cloud && <details className="notifications"><summary>Lembretes</summary><div className="toolbar">
       <button onClick={() => void enableMorningPush().then(() => setPushMessage('Lembrete matinal ativado neste aparelho.')).catch(error => setPushMessage(error.message))}>Ativar lembrete matinal</button>
@@ -351,11 +355,12 @@ function App() {
       </button>
     </div>}
     {tab === 'Estudos' && fileTarget && cloud && <DriveFiles key={fileTarget} subject={fileTarget} title={fileTarget === subject ? 'Arquivos da matéria' : 'Arquivos do tema'} />}
-    {editing && <section key={editing.id} className={editing.area === 'Semana' ? 'panel commitment-editor' : 'panel'} aria-label="Editar item"><form onSubmit={save}>
+    {editing && <section key={editing.id} className={fullEditor ? 'panel commitment-editor' : 'panel'} aria-label="Editar item"><form onSubmit={save}>
       {editing.area === 'Semana' && <h1>{entries.some(item => item.id === editing.id) ? 'Editar compromisso' : 'Novo compromisso'}</h1>}
+      {editing.area === 'Estudos' && <h1>{entries.some(item => item.id === editing.id) ? `Editar ${editing.kind?.toLowerCase() ?? 'item'}` : editing.kind === 'Tema' ? 'Novo tema' : `Nova ${editing.kind?.toLowerCase() ?? 'matéria'}`}</h1>}
       <label>Título<input autoFocus required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>
-      {editing.area !== 'Semana' && <label>Tipo<select value={editing.kind ?? 'Gasto'} onChange={event => setEditing({ ...editing, kind: event.target.value as Kind })}>
-        {(editing.area === 'Estudos' ? studyKinds : financeKinds).map(kind => <option key={kind}>{kind}</option>)}
+      {editing.area === 'Finanças' && <label>Tipo<select value={editing.kind ?? 'Gasto'} onChange={event => setEditing({ ...editing, kind: event.target.value as Kind })}>
+        {financeKinds.map(kind => <option key={kind}>{kind}</option>)}
       </select></label>}
       {((editing.area === 'Estudos' && editing.kind !== 'Matéria') || (editing.area === 'Finanças' && ['Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto'))) && <label>{editing.area === 'Estudos' ? 'Matéria' : 'Conta'}<select value={editing.parent ?? ''} onChange={event => setEditing({ ...editing, parent: event.target.value || undefined })}>
         <option value="">Selecionar</option>{(editing.area === 'Estudos' ? subjects : accounts).map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
@@ -364,8 +369,9 @@ function App() {
       {editing.kind === 'Conta' && <label>Cor da conta<input type="color" value={editing.color ?? '#112c0f'} onChange={event => setEditing({ ...editing, color: event.target.value })} /></label>}
       {editing.kind === 'Parcela' && <label>Número de parcelas<input required type="number" min="2" step="1" value={editing.installments ?? ''} onChange={event => setEditing({ ...editing, installments: event.target.valueAsNumber || undefined })} /></label>}
       {editing.area !== 'Semana' && <label>Detalhes<input value={editing.detail} onChange={event => setEditing({ ...editing, detail: event.target.value })} /></label>}
-      {editing.area === 'Semana' ? <>
-        <CommitmentDate value={editing.date} onChange={date => setEditing({ ...editing, date })} />
+      {fullEditor ? <EditorDate value={editing.date} onChange={date => setEditing({ ...editing, date })} />
+        : <label>Data<input type="date" required={editing.kind !== 'Conta'} value={editing.date ?? ''} onChange={event => setEditing({ ...editing, date: event.target.value })} /></label>}
+      {editing.area === 'Semana' &&
         <label>Horário<input type="text" inputMode="numeric" placeholder="HH:MM"
           pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Digite um horário de 00:00 a 23:59"
           value={editing.startTime ?? ''} onChange={event => {
@@ -373,7 +379,7 @@ function App() {
             const startTime = digits.length > 2 ? digits.slice(0, 2) + ':' + digits.slice(2) : digits
             setEditing({ ...editing, startTime, endTime: undefined })
           }} /></label>
-      </> : <label>Data<input type="date" required={editing.kind === 'Prova' || editing.kind === 'Revisão' || editing.area === 'Finanças' && editing.kind !== 'Conta'} value={editing.date ?? ''} onChange={event => setEditing({ ...editing, date: event.target.value })} /></label>}
+      }
       {editing.area === 'Semana' && <label className="check"><input type="checkbox" checked={!!editing.weekly} onChange={event => setEditing({ ...editing, weekly: event.target.checked })} /> Repetir toda semana</label>}
       {editing.area === 'Finanças' && <label>{editing.kind === 'Parcela' ? 'Valor de cada parcela' : 'Valor'} (ARS)<input required type="number" min={editing.kind === 'Conta' ? undefined : '0.01'} step="0.01" value={editing.amount ?? ''} onChange={event => setEditing({ ...editing, amount: event.target.value ? Number(event.target.value) : undefined })} /></label>}
       {editing.kind === 'Revisão' && <label className="check"><input type="checkbox" checked={!!editing.done} onChange={event => setEditing({ ...editing, done: event.target.checked })} /> Revisão concluída</label>}
@@ -386,7 +392,7 @@ function App() {
   </main>
 }
 
-function CommitmentDate({ value, onChange }: { value?: string; onChange: (date: string) => void }) {
+function EditorDate({ value, onChange }: { value?: string; onChange: (date: string) => void }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const [first, setFirst] = useState((value || today).slice(0, 7) + '-01')
   const start = new Date(first)
