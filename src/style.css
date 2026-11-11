@@ -128,6 +128,9 @@ main:has(.calendar-add:not([hidden])) { padding-bottom: calc(5rem + env(safe-are
   main:has(.calendar-add:not([hidden])) { padding-bottom: calc(9rem + env(safe-area-inset-bottom)); }
 }
 .calendar-add:not([hidden]) { display: inline-flex; align-items: center; gap: .35rem; }
+.finance-month-controls { margin: 1rem 0; justify-content: space-between; flex-wrap: nowrap; }
+.finance-month-controls > div { min-width: 0; text-align: center; text-transform: capitalize; }
+.finance-month-controls > button { width: 44px; padding-inline: 0; flex: none; }
 .commitment-editor { max-width: 32rem; margin-inline: auto; }
 .commitment-editor form { gap: 1rem; }
 .commitment-editor .check input { appearance: none; border: 1.5px solid var(--forest); border-radius: 50%; display: grid; place-items: center; }
@@ -162,18 +165,21 @@ li > input[type="checkbox"]:checked::before {
   border-width: 0 2px 2px 0;
   transform: translateY(-1px) rotate(45deg);
 }
-.study-actions { position: fixed; z-index: 9; right: max(1rem, env(safe-area-inset-right)); bottom: calc(1rem + env(safe-area-inset-bottom)); display: grid; justify-items: end; gap: .5rem; }
-.study-actions > div:not([hidden]) { display: grid; gap: .4rem; justify-items: end; }
-.study-actions button { box-shadow: 0 4px 14px #112c0f24; }
-.study-toggle { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; }
-.study-toggle svg { transition: transform .18s ease; }
-.study-toggle[aria-expanded="true"] svg { transform: rotate(45deg); }
-main:has(.study-actions) { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
+.study-actions, .finance-actions { position: fixed; z-index: 9; right: max(1rem, env(safe-area-inset-right)); bottom: calc(1rem + env(safe-area-inset-bottom)); display: grid; justify-items: end; gap: .5rem; }
+.study-actions > div:not([hidden]), .finance-actions > div:not([hidden]) { display: grid; gap: .4rem; justify-items: end; }
+.study-actions button, .finance-actions button { box-shadow: 0 4px 14px #112c0f24; }
+.study-toggle, .finance-toggle { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; }
+.study-toggle svg, .finance-toggle svg { transition: transform .18s ease; }
+.study-toggle[aria-expanded="true"] svg, .finance-toggle[aria-expanded="true"] svg { transform: rotate(45deg); }
+.finance-action-groups button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-width: 8.25rem; }
+.finance-action-groups svg { flex: none; }
+.finance-action-types button { min-width: 10.25rem; }
+main:has(.study-actions), main:has(.finance-actions) { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
 @media (max-width: 600px) {
-  .study-actions { bottom: calc(5rem + env(safe-area-inset-bottom)); }
-  main:has(.study-actions) { padding-bottom: calc(9rem + env(safe-area-inset-bottom)); }
+  .study-actions, .finance-actions { bottom: calc(5rem + env(safe-area-inset-bottom)); }
+  main:has(.study-actions), main:has(.finance-actions) { padding-bottom: calc(9rem + env(safe-area-inset-bottom)); }
 }
-@media (prefers-reduced-motion: reduce) { .study-toggle svg { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .study-toggle svg, .finance-toggle svg { transition: none; } }
 .study-editor-dialog { width: min(32rem, calc(100% - 2rem)); max-height: 85dvh; padding: 0; border: 0; border-radius: 1.25rem; color: var(--ink); background: var(--white); }
 .study-editor-dialog::backdrop { background: #112c0f55; backdrop-filter: blur(5px); }
 .study-editor-dialog > .panel { margin: 0; border: 0; box-shadow: none; padding: 1.25rem; }

@@ -33,6 +33,10 @@ const examples: Entry[] = [
   { id: 'demo-expense', area: 'Finanças', title: 'Material de estudo', detail: '', kind: 'Gasto', category: 'Estudos', parent: 'demo-account', date: today, amount: 18500 },
 ]
 const financeKinds: Kind[] = ['Gasto', 'Conta', 'Conta fixa', 'Parcela', 'Limite']
+const financeActionGroups = {
+  Entrada: ['Conta', 'Limite'],
+  'Saída': ['Gasto', 'Conta fixa', 'Parcela'],
+} as const
 type Snapshot = { version: number; entries: Entry[] }
 const db = new Dexie(cloud ? 'organiza-ai-shared' : 'organiza-ai') as Dexie & {
   entries: Table<Entry, string>
@@ -55,6 +59,12 @@ function shiftDay(day: string, offset: number) {
   return date.toISOString().slice(0, 10)
 }
 
+function shiftMonth(month: string, offset: number) {
+  const [year, number] = month.split('-').map(Number)
+  const date = new Date(Date.UTC(year, number - 1 + offset, 1))
+  return date.toISOString().slice(0, 7)
+}
+
 const weekDayLabel = new Intl.DateTimeFormat('pt-BR', {
   weekday: 'long', day: 'numeric', month: 'short', timeZone: 'UTC',
 })
@@ -69,6 +79,8 @@ function App() {
   const [conflict, setConflict] = useState<Snapshot>()
   const [subject, setSubject] = useState('')
   const [studyActionsOpen, setStudyActionsOpen] = useState(false)
+  const [financeActionsOpen, setFinanceActionsOpen] = useState(false)
+  const [financeActionGroup, setFinanceActionGroup] = useState<keyof typeof financeActionGroups>()
   const [deadlineMessage, setDeadlineMessage] = useState(-1)
   const [theme, setTheme] = useState('')
   const [day, setDay] = useState(linkedDay && /^\d{4}-\d{2}-\d{2}$/.test(linkedDay) ? linkedDay : today)
@@ -253,6 +265,8 @@ function App() {
     }
     setTab(area)
     setStudyActionsOpen(false)
+    setFinanceActionsOpen(false)
+    setFinanceActionGroup(undefined)
     setEditing(undefined)
     setError('')
     window.scrollTo(0, 0)
@@ -320,7 +334,8 @@ function App() {
     {ready && tab !== 'Início' && <section className="panel">
       {tab !== 'Estudos' && <>
       <div className="toolbar"><h2>{tab === 'Semana' ? 'Calendário' : 'Lançamentos em pesos argentinos'}</h2>
-        <button hidden={tab === 'Semana' && !!editing} className={tab === 'Semana' ? 'primary calendar-add' : 'primary'} onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: tab, date: tab === 'Finanças' ? month === today.slice(0, 7) ? today : month + '-01' : day, kind: tab === 'Finanças' ? 'Gasto' : undefined })}>{tab === 'Semana' ? <><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg> Novo compromisso</> : '+ Adicionar'}</button></div>
+        {tab === 'Semana' && <button hidden={!!editing} className="primary calendar-add" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: tab, date: day })}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg> Novo compromisso</button>}
+      </div>
       </>}
       {tab === 'Semana' && <>
         <div className="toolbar week-controls" role="group" aria-label="Navegação por mês">
@@ -378,7 +393,11 @@ function App() {
       </li>)}</ul> : <p className="empty-state">Nenhuma matéria cadastrada.</p>}
       </details>}
       {tab === 'Finanças' && <>
-        <label>Mês<input type="month" value={month} onChange={event => setMonth(event.target.value || today.slice(0, 7))} /></label>
+        <div className="toolbar finance-month-controls" role="group" aria-label="Navegação por mês">
+          <button aria-label="Mês anterior" onClick={() => setMonth(shiftMonth(month, -1))}>‹</button>
+          <div><strong aria-live="polite">{new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${month}-01T00:00:00Z`))}</strong></div>
+          <button aria-label="Próximo mês" onClick={() => setMonth(shiftMonth(month, 1))}>›</button>
+        </div>
         <div className="finance-summary">{[['Disponível', available], ['Reservado', reserved], ['Gasto', spent]].map(([label, value], index) => {
           const combined = Math.max(available, 0) + reserved + spent
           const percent = combined ? Math.max(Number(value), 0) / combined * 100 : 0
@@ -402,6 +421,31 @@ function App() {
       </div>
       <button className="primary study-toggle" type="button" aria-label={studyActionsOpen ? 'Fechar opções' : 'Adicionar em Estudos'}
         aria-expanded={studyActionsOpen} aria-controls="study-create-options" onClick={() => setStudyActionsOpen(open => !open)}>
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg>
+      </button>
+    </div>}
+    {ready && tab === 'Finanças' && !editing && <div className="finance-actions">
+      <div id="finance-type-options" className="finance-action-types" hidden={!financeActionGroup}>
+        {financeActionGroup && financeActionGroups[financeActionGroup].map(kind => <button key={kind} type="button" onClick={() => {
+          setFinanceActionsOpen(false)
+          setFinanceActionGroup(undefined)
+          setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind,
+            date: kind === 'Conta' ? undefined : month === today.slice(0, 7) ? today : `${month}-01` })
+        }}>{kind === 'Limite' ? 'Limite mensal' : `Novo ${kind.toLowerCase()}`}</button>)}
+      </div>
+      <div id="finance-create-options" className="finance-action-groups" hidden={!financeActionsOpen}>
+        {(Object.keys(financeActionGroups) as Array<keyof typeof financeActionGroups>).map(group => <button key={group} type="button"
+          aria-expanded={financeActionGroup === group} aria-controls="finance-type-options"
+          onClick={() => setFinanceActionGroup(current => current === group ? undefined : group)}>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={group === 'Entrada' ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6'} /></svg>
+          {group}
+        </button>)}
+      </div>
+      <button className="primary finance-toggle" type="button" aria-label={financeActionsOpen ? 'Fechar opções financeiras' : 'Adicionar lançamento'}
+        aria-expanded={financeActionsOpen} aria-controls="finance-create-options" onClick={() => {
+          setFinanceActionsOpen(open => !open)
+          setFinanceActionGroup(undefined)
+        }}>
         <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg>
       </button>
     </div>}
