@@ -71,7 +71,6 @@ function App() {
   const accounts = entries.filter(entry => entry.kind === 'Conta')
   const subjects = entries.filter(entry => entry.kind === 'Matéria')
   const themes = entries.filter(entry => entry.kind === 'Tema' && entry.parent === subject)
-  const fileTarget = themes.some(entry => entry.id === theme) ? theme : subject
   const agendaMonth = day.slice(0, 7)
   const firstDay = agendaMonth + '-01'
   const firstWeekday = (new Date(firstDay + 'T00:00:00Z').getUTCDay() + 6) % 7
@@ -332,11 +331,19 @@ function App() {
           </svg>
         </button></div>
         {subject === item.id && <div className="subject-content">
-          {list(entries.filter(entry => entry.parent === item.id), 'Nenhum conteúdo cadastrado.')}
-          {themes.length > 0 && <label>Arquivos do tema<select value={theme} onChange={event => setTheme(event.target.value)}>
-            <option value="">Arquivos gerais da matéria</option>{themes.map(entry => <option key={entry.id} value={entry.id}>{entry.title}</option>)}
-          </select></label>}
-          {fileTarget && cloud && <DriveFiles key={fileTarget} subject={fileTarget} title={fileTarget === subject ? 'Arquivos da matéria' : 'Arquivos do tema'} />}
+          {themes.length > 0 && <ul className="subject-list">{themes.map(content => <li key={content.id}>
+            <button type="button" className="entry subject-toggle" aria-expanded={theme === content.id}
+              onClick={() => setTheme(theme === content.id ? '' : content.id)}>
+              <strong>{content.title}</strong><span aria-hidden="true">{theme === content.id ? '⌃' : '⌄'}</span>
+            </button>
+            {theme === content.id && <div className="subject-content">
+              {content.detail && <p>{content.detail}</p>}
+              <button type="button" onClick={() => setEditing(content)}>Editar conteúdo</button>
+              {cloud && <DriveFiles subject={content.id} title="Arquivos do conteúdo" />}
+            </div>}
+          </li>)}</ul>}
+          {list(entries.filter(entry => entry.parent === item.id && entry.kind !== 'Tema'), themes.length ? '' : 'Nenhum conteúdo cadastrado.')}
+          {cloud && <DriveFiles subject={item.id} title="Arquivos gerais da matéria" />}
         </div>}
       </li>)}</ul> : <p className="empty-state">Nenhuma matéria cadastrada.</p>)}
       {tab === 'Finanças' && <>
