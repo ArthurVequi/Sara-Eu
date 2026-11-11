@@ -8,7 +8,7 @@ import { SplashScreen } from './SplashScreen'
 
 type Area = 'Semana' | 'Estudos' | 'Finanças'
 type Kind = 'Matéria' | 'Tema' | 'Prova' | 'Revisão' | 'Conta' | 'Gasto' | 'Conta fixa' | 'Parcela' | 'Limite'
-type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number; paymentFor?: string }
+type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number; paymentFor?: string; weekday?: number }
 const areas: Area[] = ['Semana', 'Estudos', 'Finanças']
 const navIcons = [
   'M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8 M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
@@ -37,6 +37,8 @@ db.version(1).stores({ entries: 'id, area', settings: 'id' })
 const money = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', currencyDisplay: 'code' })
 
 function occursOn(entry: Entry, day: string) {
+  if (entry.kind === 'Matéria') return entry.weekday === new Date(day).getUTCDay()
+  if (entry.area !== 'Semana') return false
   if (!entry.date || entry.date > day) return false
   if (!entry.weekly) return entry.date === day
   return (Date.parse(day) - Date.parse(entry.date)) % (7 * 86_400_000) === 0
@@ -222,7 +224,7 @@ function App() {
       {entry.area === 'Semana' && !entry.weekly && <input type="checkbox" checked={!!entry.done} aria-label={`Concluir ${entry.title}`} onChange={() => void toggle(entry)} />}
       <button className="entry" onClick={() => setEditing(entry)}>
         <strong>{entry.title}</strong>
-        <small>{[entry.kind, [entry.startTime, entry.endTime].filter(Boolean).join(' – '), entry.detail, entry.category, entries.find(item => item.id === entry.parent)?.title, entry.date, entry.weekly ? 'Toda semana' : ''].filter(Boolean).join(' · ')}</small>
+        <small>{[entry.kind, [entry.startTime, entry.endTime].filter(Boolean).join(' – '), entry.detail, entry.category, entries.find(item => item.id === entry.parent)?.title, entry.date, entry.weekly || entry.weekday !== undefined ? 'Toda semana' : ''].filter(Boolean).join(' · ')}</small>
       </button>
       {entry.kind === 'Conta' && <span className="account-color" style={{ backgroundColor: entry.color }} aria-hidden="true" />}
       {entry.amount !== undefined && <strong>{money.format(entry.amount)}</strong>}
@@ -276,7 +278,7 @@ function App() {
     {error && <p role="alert">{error}</p>}
     {!ready && !error && <p role="status">Carregando…</p>}
     {ready && tab === 'Início' && <div className="grid dashboard">
-      <section className="panel dashboard-today"><div className="toolbar"><h2>Hoje</h2><button className="text-action" onClick={() => { setDay(today); navigate('Semana') }}>Ver agenda</button></div>{list(entries.filter(item => item.area === 'Semana' && occursOn(item, today)), 'Nenhum compromisso para hoje.')}</section>
+      <section className="panel dashboard-today"><div className="toolbar"><h2>Hoje</h2><button className="text-action" onClick={() => { setDay(today); navigate('Semana') }}>Ver agenda</button></div>{list(entries.filter(item => occursOn(item, today)), 'Nenhum compromisso para hoje.')}</section>
       <section className="panel dashboard-exams"><h2>Próximas provas</h2>{list(exams, 'Nenhuma prova marcada.')}</section>
       <section className="panel dashboard-reviews"><h2>Revisões pendentes</h2>{list(entries.filter(item => item.kind === 'Revisão' && !item.done && item.date && item.date <= today), 'Nenhuma revisão pendente.')}</section>
       <section className="panel dashboard-finance"><div className="toolbar"><h2>Resumo financeiro</h2><button className="text-action" onClick={() => { setMonth(today.slice(0, 7)); navigate('Finanças') }}>Ver finanças</button></div><dl className="dashboard-money">
@@ -301,7 +303,7 @@ function App() {
           {Array.from({ length: firstWeekday }, (_, index) => <span key={index} />)}
           {Array.from({ length: daysInMonth }, (_, index) => {
             const date = shiftDay(firstDay, index)
-            const count = entries.filter(item => item.area === 'Semana' && occursOn(item, date)).length
+            const count = entries.filter(item => occursOn(item, date)).length
             return <button key={date} aria-current={date === today ? 'date' : undefined}
               aria-label={`${weekDayLabel.format(new Date(date))}, ${count} itens`}
               aria-pressed={date === day} onClick={() => setDay(date)}>
@@ -312,20 +314,27 @@ function App() {
       </>}
       {tab === 'Semana' && <section className="week-day">
         <h3>{weekDayLabel.format(new Date(day))}</h3>
-        {list(entries.filter(item => item.area === 'Semana' && occursOn(item, day)), 'Nenhum compromisso neste dia.')}
+        {list(entries.filter(item => occursOn(item, day)), 'Nenhum compromisso neste dia.')}
       </section>}
       {tab === 'Semana' && entries.some(item => item.area === 'Semana' && !item.date) && <section className="week-day">
         <h3>Sem data</h3>{list(entries.filter(item => item.area === 'Semana' && !item.date))}
       </section>}
-      {tab === 'Estudos' && (subject ? <div className="toolbar">
-        <h2>{subjects.find(item => item.id === subject)?.title}</h2>
-        <button onClick={() => { setSubject(''); setTheme(''); setEditing(undefined) }}>Todas as matérias</button>
-      </div> : subjects.length ? <ul>{subjects.map(item => <li key={item.id}>
-        <button className="entry" onClick={() => { setSubject(item.id); setTheme(''); setEditing(undefined) }}><strong>{item.title}</strong></button>
+      {tab === 'Estudos' && (subjects.length ? <ul className="subject-list">{subjects.map(item => <li key={item.id}>
+        <button className="entry subject-toggle" aria-expanded={subject === item.id} onClick={() => {
+          setSubject(subject === item.id ? '' : item.id)
+          setTheme('')
+        }}>
+          <strong>{item.title}</strong><span aria-hidden="true">{subject === item.id ? '⌃' : '⌄'}</span>
+        </button>
+        {subject === item.id && <div className="subject-content">
+          {list(entries.filter(entry => entry.parent === item.id), 'Nenhum conteúdo cadastrado.')}
+          <button type="button" onClick={() => setEditing(item)}>Editar matéria</button>
+          {themes.length > 0 && <label>Arquivos do tema<select value={theme} onChange={event => setTheme(event.target.value)}>
+            <option value="">Arquivos gerais da matéria</option>{themes.map(entry => <option key={entry.id} value={entry.id}>{entry.title}</option>)}
+          </select></label>}
+          {fileTarget && cloud && <DriveFiles key={fileTarget} subject={fileTarget} title={fileTarget === subject ? 'Arquivos da matéria' : 'Arquivos do tema'} />}
+        </div>}
       </li>)}</ul> : <p className="empty-state">Nenhuma matéria cadastrada.</p>)}
-      {tab === 'Estudos' && themes.length > 0 && <label>Arquivos do tema<select value={theme} onChange={event => setTheme(event.target.value)}>
-        <option value="">Arquivos gerais da matéria</option>{themes.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
-      </select></label>}
       {tab === 'Finanças' && <>
         <label>Mês<input type="month" value={month} onChange={event => setMonth(event.target.value || today.slice(0, 7))} /></label>
         <div className="finance-summary">{[['Disponível', available], ['Reservado', reserved], ['Gasto', spent]].map(([label, value], index) => {
@@ -335,9 +344,8 @@ function App() {
         })}</div>
         {limit !== undefined && <p>Limite do mês: {money.format(limit)}{spent > limit ? ' · Limite ultrapassado' : ''}</p>}
       </>}
-      {tab !== 'Semana' && (tab !== 'Estudos' || !!subject) && list(entries.filter(item => {
+      {tab === 'Finanças' && list(entries.filter(item => {
         if (item.area !== tab) return false
-        if (tab === 'Estudos') return !subject || item.id === subject || item.parent === subject
         return accounts.includes(item) || (expenses.includes(item) && (!item.paymentFor || !planned.some(plan => plan.id === item.paymentFor))) || planned.includes(item) || (item.kind === 'Limite' && item.date?.startsWith(month))
       }))}
     </section>}
@@ -355,7 +363,6 @@ function App() {
         <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg>
       </button>
     </div>}
-    {tab === 'Estudos' && fileTarget && cloud && <DriveFiles key={fileTarget} subject={fileTarget} title={fileTarget === subject ? 'Arquivos da matéria' : 'Arquivos do tema'} />}
     {editing && <ItemEditor key={editing.id} modal={editing.area !== 'Finanças'} onCancel={() => { setEditing(undefined); setError('') }}>
       <section className={fullEditor ? 'panel commitment-editor' : 'panel'} aria-label="Editar item"><form onSubmit={save}>
       {editing.area === 'Semana' && <h1 id="item-editor-title">{entries.some(item => item.id === editing.id) ? 'Editar compromisso' : 'Novo compromisso'}</h1>}
@@ -372,6 +379,7 @@ function App() {
       {editing.kind === 'Conta' && <label>Cor da conta<input type="color" value={editing.color ?? '#112c0f'} onChange={event => setEditing({ ...editing, color: event.target.value })} /></label>}
       {editing.kind === 'Parcela' && <label>Número de parcelas<input required type="number" min="2" step="1" value={editing.installments ?? ''} onChange={event => setEditing({ ...editing, installments: event.target.valueAsNumber || undefined })} /></label>}
       {editing.area !== 'Semana' && <label>{editing.area === 'Estudos' ? 'Descrição (opcional)' : 'Detalhes'}<input value={editing.detail} onChange={event => setEditing({ ...editing, detail: event.target.value })} /></label>}
+      {editing.kind === 'Matéria' && <SubjectWeekday value={editing.weekday} onChange={weekday => setEditing({ ...editing, weekday })} />}
       {(fullEditor || editing.kind === 'Prova' || editing.kind === 'Revisão') && <EditorDate value={editing.date} onChange={date => setEditing({ ...editing, date })} />}
       {editing.area === 'Finanças' && <label>Data<input type="date" required={editing.kind !== 'Conta'} value={editing.date ?? ''} onChange={event => setEditing({ ...editing, date: event.target.value })} /></label>}
       {editing.area === 'Semana' &&
@@ -406,6 +414,29 @@ function ItemEditor({ modal, onCancel, children }: { modal: boolean; onCancel: (
   if (!modal) return children
   return <dialog ref={dialog} className="study-editor-dialog" aria-labelledby="item-editor-title"
     onCancel={event => { event.preventDefault(); onCancel() }}>{children}</dialog>
+}
+
+const weekdays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
+
+function SubjectWeekday({ value, onChange }: { value?: number; onChange: (weekday?: number) => void }) {
+  const dialog = useRef<HTMLDialogElement>(null)
+  const choose = (weekday?: number) => {
+    onChange(weekday)
+    dialog.current?.close()
+  }
+  return <div className="commitment-date">
+    <span>Dia da semana</span>
+    <button type="button" aria-label="Dia da semana" aria-haspopup="dialog" onClick={() => dialog.current?.showModal()}>
+      {value === undefined ? 'Sem dia vinculado' : weekdays[value]}
+    </button>
+    <dialog ref={dialog} className="date-dialog weekday-dialog" aria-labelledby="weekday-title">
+      <h2 id="weekday-title">Dia da semana</h2>
+      <div>{[1, 2, 3, 4, 5, 6, 0].map(day => <button key={day} type="button" aria-pressed={value === day} onClick={() => choose(day)}>{weekdays[day]}</button>)}
+        <button type="button" aria-pressed={value === undefined} onClick={() => choose()}>Sem dia vinculado</button>
+      </div>
+      <button type="button" onClick={() => dialog.current?.close()}>Cancelar</button>
+    </dialog>
+  </div>
 }
 
 function EditorDate({ value, onChange }: { value?: string; onChange: (date: string) => void }) {
