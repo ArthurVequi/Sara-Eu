@@ -353,7 +353,9 @@ function App() {
       {tab === 'Semana' && entries.some(item => item.area === 'Semana' && !item.date) && <section className="week-day">
         <h3>Sem data</h3>{list(entries.filter(item => item.area === 'Semana' && !item.date))}
       </section>}
-      {tab === 'Estudos' && (subjects.length ? <ul className="subject-list">{subjects.map(item => <li key={item.id}>
+      {tab === 'Estudos' && <details className="study-subjects" open>
+        <summary>Matérias</summary>
+        {subjects.length ? <ul className="subject-list">{subjects.map(item => <li key={item.id}>
         <div className="subject-row"><button className="entry subject-toggle" aria-expanded={subject === item.id} onClick={() => {
           setSubject(subject === item.id ? '' : item.id)
           setTheme('')
@@ -377,7 +379,8 @@ function App() {
           {list(entries.filter(entry => entry.parent === item.id && entry.kind !== 'Tema' && !themes.some(content => content.id === entry.contentId)), themes.length ? '' : 'Nenhum conteúdo cadastrado.')}
           {cloud && <DriveFiles subject={item.id} title="Arquivos gerais da matéria" />}
         </div>}
-      </li>)}</ul> : <p className="empty-state">Nenhuma matéria cadastrada.</p>)}
+      </li>)}</ul> : <p className="empty-state">Nenhuma matéria cadastrada.</p>}
+      </details>}
       {tab === 'Finanças' && <>
         <label>Mês<input type="month" value={month} onChange={event => setMonth(event.target.value || today.slice(0, 7))} /></label>
         <div className="finance-summary">{[['Disponível', available], ['Reservado', reserved], ['Gasto', spent]].map(([label, value], index) => {
