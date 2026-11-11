@@ -194,7 +194,7 @@ function App() {
   }
 
   async function remove(entry: Entry) {
-    const note = entry.kind === 'Matéria' ? '\nOs arquivos da matéria permanecerão no Google Drive.' : ''
+    const note = entry.kind === 'Matéria' || entry.kind === 'Tema' ? '\nOs arquivos permanecerão no Google Drive.' : ''
     if (!window.confirm(`Excluir “${entry.title}” do espaço compartilhado?${note}`)) return
     try {
       const removed = await db.transaction('rw', db.entries, async () => {
@@ -207,6 +207,7 @@ function App() {
         return
       }
       if (subject === entry.id) setSubject('')
+      if (theme === entry.id) setTheme('')
       setEditing(undefined)
       setError('')
       await refresh()
@@ -325,20 +326,16 @@ function App() {
         }}>
           <strong>{item.title}</strong>
         </button>
-        <button type="button" className="subject-edit" aria-label={`Editar ${item.title}`} onClick={() => setEditing(item)}>
-          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m16 3 5 5M4 15 16 3a2.12 2.12 0 0 1 3 0l2 2a2.12 2.12 0 0 1 0 3L9 20l-6 1z" />
-          </svg>
-        </button></div>
+        <StudyRowActions title={item.title} onEdit={() => setEditing(item)} onRemove={() => void remove(item)} /></div>
         {subject === item.id && <div className="subject-content">
           {themes.length > 0 && <ul className="subject-list">{themes.map(content => <li key={content.id}>
-            <button type="button" className="entry subject-toggle" aria-expanded={theme === content.id}
+            <div className="subject-row"><button type="button" className="entry subject-toggle" aria-expanded={theme === content.id}
               onClick={() => setTheme(theme === content.id ? '' : content.id)}>
-              <strong>{content.title}</strong><span aria-hidden="true">{theme === content.id ? '⌃' : '⌄'}</span>
+              <strong>{content.title}</strong>
             </button>
+            <StudyRowActions title={content.title} onEdit={() => setEditing(content)} onRemove={() => void remove(content)} /></div>
             {theme === content.id && <div className="subject-content">
               {content.detail && <p>{content.detail}</p>}
-              <button type="button" onClick={() => setEditing(content)}>Editar conteúdo</button>
               {cloud && <DriveFiles subject={content.id} title="Arquivos do conteúdo" />}
             </div>}
           </li>)}</ul>}
@@ -413,6 +410,21 @@ function App() {
       </div>
     </form></section></ItemEditor>}
   </main>
+}
+
+function StudyRowActions({ title, onEdit, onRemove }: { title: string; onEdit: () => void; onRemove: () => void }) {
+  return <>
+    <button type="button" className="subject-edit" aria-label={`Editar ${title}`} onClick={onEdit}>
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m16 3 5 5M4 15 16 3a2.12 2.12 0 0 1 3 0l2 2a2.12 2.12 0 0 1 0 3L9 20l-6 1z" />
+      </svg>
+    </button>
+    <button type="button" className="subject-edit" aria-label={`Excluir ${title}`} onClick={onRemove}>
+      <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M5 6l1 14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1l1-14M10 10v7m4-7v7" />
+      </svg>
+    </button>
+  </>
 }
 
 function ItemEditor({ modal, onCancel, children }: { modal: boolean; onCancel: () => void; children: ReactNode }) {
