@@ -10,6 +10,12 @@ type Area = 'Semana' | 'Estudos' | 'Finanças'
 type Kind = 'Matéria' | 'Tema' | 'Prova' | 'Revisão' | 'Conta' | 'Gasto' | 'Conta fixa' | 'Parcela' | 'Limite'
 type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number; paymentFor?: string; weekday?: number; contentId?: string }
 const areas: Area[] = ['Semana', 'Estudos', 'Finanças']
+const emptyDeadlineMessages = [
+  'Ufa! Nenhuma prova ou revisão marcada.',
+  'Nenhuma prova ou revisão. O cérebro agradece.',
+  'Sem provas nem revisões. Café por prazer, hoje.',
+  'Nenhuma prova ou revisão. Posso respirar sem culpa.',
+]
 const navIcons = [
   'M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8 M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
   'M8 2v3m8-3v3 M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M3 9h18M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01',
@@ -64,6 +70,7 @@ function App() {
   const [conflict, setConflict] = useState<Snapshot>()
   const [subject, setSubject] = useState('')
   const [studyActionsOpen, setStudyActionsOpen] = useState(false)
+  const [deadlineMessage, setDeadlineMessage] = useState(-1)
   const [theme, setTheme] = useState('')
   const [day, setDay] = useState(linkedDay && /^\d{4}-\d{2}-\d{2}$/.test(linkedDay) ? linkedDay : today)
   const [pushMessage, setPushMessage] = useState('')
@@ -241,6 +248,13 @@ function App() {
   }
 
   function navigate(area: typeof tab) {
+    if (area === 'Estudos' && tab !== 'Estudos') {
+      setDeadlineMessage(previous => {
+        const count = emptyDeadlineMessages.length
+        if (previous === -1) return Math.floor(Math.random() * count)
+        return (previous + 1 + Math.floor(Math.random() * (count - 1))) % count
+      })
+    }
     setTab(area)
     setStudyActionsOpen(false)
     setEditing(undefined)
@@ -305,7 +319,7 @@ function App() {
             subjects.find(item => item.id === entry.parent)?.title,
             entries.find(item => item.id === entry.contentId)?.title].filter(Boolean).join(' · ')}</small>
         </button>
-      </li>)}</ul> : <p className="empty-state">Ufa! Nenhuma prova ou revisão marcada.</p>}
+      </li>)}</ul> : <p className="empty-state">{emptyDeadlineMessages[Math.max(0, deadlineMessage)]}</p>}
     </details>}
     {ready && tab !== 'Início' && <section className="panel">
       {tab !== 'Estudos' && <>
