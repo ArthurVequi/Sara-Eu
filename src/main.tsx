@@ -8,7 +8,7 @@ import { SplashScreen } from './SplashScreen'
 
 type Area = 'Semana' | 'Estudos' | 'Finanças'
 type Kind = 'Matéria' | 'Tema' | 'Prova' | 'Revisão' | 'Conta' | 'Gasto' | 'Conta fixa' | 'Parcela' | 'Limite'
-type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number; paymentFor?: string; weekday?: number }
+type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number; paymentFor?: string; weekday?: number; contentId?: string }
 const areas: Area[] = ['Semana', 'Estudos', 'Finanças']
 const navIcons = [
   'M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8 M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
@@ -198,7 +198,7 @@ function App() {
     if (!window.confirm(`Excluir “${entry.title}” do espaço compartilhado?${note}`)) return
     try {
       const removed = await db.transaction('rw', db.entries, async () => {
-        if ((await db.entries.toArray()).some(item => item.parent === entry.id)) return false
+        if ((await db.entries.toArray()).some(item => item.parent === entry.id || item.contentId === entry.id)) return false
         await db.entries.delete(entry.id)
         return true
       })
@@ -336,10 +336,11 @@ function App() {
             <StudyRowActions title={content.title} onEdit={() => setEditing(content)} onRemove={() => void remove(content)} /></div>
             {theme === content.id && <div className="subject-content">
               {content.detail && <p>{content.detail}</p>}
+              {entries.some(entry => entry.contentId === content.id) && list(entries.filter(entry => entry.contentId === content.id))}
               {cloud && <DriveFiles subject={content.id} title="Arquivos do conteúdo" />}
             </div>}
           </li>)}</ul>}
-          {list(entries.filter(entry => entry.parent === item.id && entry.kind !== 'Tema'), themes.length ? '' : 'Nenhum conteúdo cadastrado.')}
+          {list(entries.filter(entry => entry.parent === item.id && entry.kind !== 'Tema' && !themes.some(content => content.id === entry.contentId)), themes.length ? '' : 'Nenhum conteúdo cadastrado.')}
           {cloud && <DriveFiles subject={item.id} title="Arquivos gerais da matéria" />}
         </div>}
       </li>)}</ul> : <p className="empty-state">Nenhuma matéria cadastrada.</p>)}
@@ -380,7 +381,11 @@ function App() {
       {editing.area === 'Finanças' && <label>Tipo<select value={editing.kind ?? 'Gasto'} onChange={event => setEditing({ ...editing, kind: event.target.value as Kind })}>
         {financeKinds.map(kind => <option key={kind}>{kind}</option>)}
       </select></label>}
-      {editing.area === 'Estudos' && editing.kind !== 'Matéria' && <SubjectPicker items={subjects} value={editing.parent} onChange={parent => setEditing({ ...editing, parent })} />}
+      {editing.area === 'Estudos' && editing.kind !== 'Matéria' && <SubjectPicker items={subjects} value={editing.parent}
+        onChange={parent => setEditing({ ...editing, parent, contentId: parent === editing.parent ? editing.contentId : undefined })} />}
+      {editing.parent && (editing.kind === 'Prova' || editing.kind === 'Revisão') && <SubjectPicker label="Conteúdo"
+        items={entries.filter(item => item.kind === 'Tema' && item.parent === editing.parent)}
+        value={editing.contentId} onChange={contentId => setEditing({ ...editing, contentId })} />}
       {editing.area === 'Finanças' && ['Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && <label>Conta<select value={editing.parent ?? ''} onChange={event => setEditing({ ...editing, parent: event.target.value || undefined })}>
         <option value="">Selecionar</option>{accounts.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
       </select></label>}
@@ -440,18 +445,19 @@ function ItemEditor({ modal, onCancel, children }: { modal: boolean; onCancel: (
     onCancel={event => { event.preventDefault(); onCancel() }}>{children}</dialog>
 }
 
-function SubjectPicker({ items, value, onChange }: { items: Entry[]; value?: string; onChange: (id?: string) => void }) {
+function SubjectPicker({ label = 'Matéria', items, value, onChange }: { label?: 'Matéria' | 'Conteúdo'; items: Entry[]; value?: string; onChange: (id?: string) => void }) {
   const dialog = useRef<HTMLDialogElement>(null)
+  const prompt = label === 'Matéria' ? 'Selecionar matéria' : 'Selecionar conteúdo'
   const choose = (id?: string) => { onChange(id); dialog.current?.close() }
   return <div className="commitment-date">
-    <span>Matéria</span>
-    <button type="button" aria-label="Selecionar matéria" aria-haspopup="dialog" onClick={() => dialog.current?.showModal()}>
-      {items.find(item => item.id === value)?.title ?? 'Selecionar matéria'}
+    <span>{label}</span>
+    <button type="button" aria-label={prompt} aria-haspopup="dialog" onClick={() => dialog.current?.showModal()}>
+      {items.find(item => item.id === value)?.title ?? prompt}
     </button>
-    <dialog ref={dialog} className="date-dialog weekday-dialog subject-picker" aria-labelledby="subject-picker-title">
-      <h2 id="subject-picker-title">Selecionar matéria</h2>
+    <dialog ref={dialog} className="date-dialog weekday-dialog subject-picker" aria-label={prompt}>
+      <h2>{prompt}</h2>
       <div>{items.map(item => <button key={item.id} type="button" aria-pressed={item.id === value} onClick={() => choose(item.id)}>{item.title}</button>)}
-        <button type="button" aria-pressed={!value} onClick={() => choose()}>Sem matéria vinculada</button>
+        <button type="button" aria-pressed={!value} onClick={() => choose()}>{label === 'Matéria' ? 'Sem matéria vinculada' : 'Sem conteúdo vinculado'}</button>
       </div>
       <button type="button" onClick={() => dialog.current?.close()}>Cancelar</button>
     </dialog>
