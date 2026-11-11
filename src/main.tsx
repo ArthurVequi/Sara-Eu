@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { cloud, enableMorningPush } from './cloud'
 import { DriveFiles, prepareDriveFolders, startDriveQueue } from './DriveFiles'
@@ -242,7 +242,7 @@ function App() {
     window.scrollTo(0, 0)
   }
 
-  const fullEditor = editing && editing.area !== 'Finanças'
+  const fullEditor = editing?.area === 'Semana'
   return <main className={fullEditor ? 'commitment-page' : undefined}>
     <header className="app-header"><span className="brand"><span aria-hidden="true">✓</span> Organiza Aí</span><span className="badge" role="status">{cloud ? message || 'Espaço compartilhado' : 'Modo local · demonstração'}</span></header>
     {cloud && <details className="notifications"><summary>Lembretes</summary><div className="toolbar">
@@ -345,7 +345,8 @@ function App() {
       <div id="study-create-options" hidden={!studyActionsOpen}>
         {(['Matéria', 'Tema', 'Prova', 'Revisão'] as const).map(kind => <button key={kind} type="button" onClick={() => {
           setStudyActionsOpen(false)
-          setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Estudos', kind, date: day,
+          setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Estudos', kind,
+            date: kind === 'Prova' || kind === 'Revisão' ? day : undefined,
             parent: kind === 'Matéria' ? undefined : subject || undefined })
         }}>{kind === 'Tema' ? 'Novo tema' : `Nova ${kind.toLowerCase()}`}</button>)}
       </div>
@@ -355,10 +356,12 @@ function App() {
       </button>
     </div>}
     {tab === 'Estudos' && fileTarget && cloud && <DriveFiles key={fileTarget} subject={fileTarget} title={fileTarget === subject ? 'Arquivos da matéria' : 'Arquivos do tema'} />}
-    {editing && <section key={editing.id} className={fullEditor ? 'panel commitment-editor' : 'panel'} aria-label="Editar item"><form onSubmit={save}>
+    {editing && <StudyEditor key={editing.id} modal={editing.area === 'Estudos'} onCancel={() => { setEditing(undefined); setError('') }}>
+      <section className={fullEditor ? 'panel commitment-editor' : 'panel'} aria-label="Editar item"><form onSubmit={save}>
       {editing.area === 'Semana' && <h1>{entries.some(item => item.id === editing.id) ? 'Editar compromisso' : 'Novo compromisso'}</h1>}
-      {editing.area === 'Estudos' && <h1>{entries.some(item => item.id === editing.id) ? `Editar ${editing.kind?.toLowerCase() ?? 'item'}` : editing.kind === 'Tema' ? 'Novo tema' : `Nova ${editing.kind?.toLowerCase() ?? 'matéria'}`}</h1>}
-      <label>Título<input autoFocus required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>
+      {editing.area === 'Estudos' && <h1 id="study-editor-title">{entries.some(item => item.id === editing.id) ? `Editar ${editing.kind?.toLowerCase() ?? 'item'}` : editing.kind === 'Tema' ? 'Novo tema' : `Nova ${editing.kind?.toLowerCase() ?? 'matéria'}`}</h1>}
+      {editing.area === 'Estudos' && error && <p role="alert">{error}</p>}
+      <label>{editing.kind === 'Matéria' ? 'Nome da matéria' : editing.kind === 'Tema' ? 'Nome do tema' : 'Título'}<input autoFocus required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>
       {editing.area === 'Finanças' && <label>Tipo<select value={editing.kind ?? 'Gasto'} onChange={event => setEditing({ ...editing, kind: event.target.value as Kind })}>
         {financeKinds.map(kind => <option key={kind}>{kind}</option>)}
       </select></label>}
@@ -368,9 +371,9 @@ function App() {
       {editing.area === 'Finanças' && <label>Categoria<input value={editing.category ?? ''} onChange={event => setEditing({ ...editing, category: event.target.value })} /></label>}
       {editing.kind === 'Conta' && <label>Cor da conta<input type="color" value={editing.color ?? '#112c0f'} onChange={event => setEditing({ ...editing, color: event.target.value })} /></label>}
       {editing.kind === 'Parcela' && <label>Número de parcelas<input required type="number" min="2" step="1" value={editing.installments ?? ''} onChange={event => setEditing({ ...editing, installments: event.target.valueAsNumber || undefined })} /></label>}
-      {editing.area !== 'Semana' && <label>Detalhes<input value={editing.detail} onChange={event => setEditing({ ...editing, detail: event.target.value })} /></label>}
-      {fullEditor ? <EditorDate value={editing.date} onChange={date => setEditing({ ...editing, date })} />
-        : <label>Data<input type="date" required={editing.kind !== 'Conta'} value={editing.date ?? ''} onChange={event => setEditing({ ...editing, date: event.target.value })} /></label>}
+      {editing.area !== 'Semana' && <label>{editing.area === 'Estudos' ? 'Descrição (opcional)' : 'Detalhes'}<input value={editing.detail} onChange={event => setEditing({ ...editing, detail: event.target.value })} /></label>}
+      {(fullEditor || editing.kind === 'Prova' || editing.kind === 'Revisão') && <EditorDate value={editing.date} onChange={date => setEditing({ ...editing, date })} />}
+      {editing.area === 'Finanças' && <label>Data<input type="date" required={editing.kind !== 'Conta'} value={editing.date ?? ''} onChange={event => setEditing({ ...editing, date: event.target.value })} /></label>}
       {editing.area === 'Semana' &&
         <label>Horário<input type="text" inputMode="numeric" placeholder="HH:MM"
           pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Digite um horário de 00:00 a 23:59"
@@ -388,8 +391,21 @@ function App() {
         {entries.some(entry => entry.id === editing.id) && <button type="button" onClick={() => void remove(editing)}>Excluir</button>}
         <button className="primary">Salvar</button>
       </div>
-    </form></section>}
+    </form></section></StudyEditor>}
   </main>
+}
+
+function StudyEditor({ modal, onCancel, children }: { modal: boolean; onCancel: () => void; children: ReactNode }) {
+  const dialog = useRef<HTMLDialogElement>(null)
+  useLayoutEffect(() => {
+    const node = dialog.current
+    if (!modal || !node) return
+    node.showModal()
+    return () => node.close()
+  }, [modal])
+  if (!modal) return children
+  return <dialog ref={dialog} className="study-editor-dialog" aria-labelledby="study-editor-title"
+    onCancel={event => { event.preventDefault(); onCancel() }}>{children}</dialog>
 }
 
 function EditorDate({ value, onChange }: { value?: string; onChange: (date: string) => void }) {

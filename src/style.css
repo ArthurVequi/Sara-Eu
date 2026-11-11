@@ -177,3 +177,12 @@ main:has(.study-actions) { padding-bottom: calc(5rem + env(safe-area-inset-botto
   main:has(.study-actions) { padding-bottom: calc(9rem + env(safe-area-inset-bottom)); }
 }
 @media (prefers-reduced-motion: reduce) { .study-toggle svg { transition: none; } }
+.study-editor-dialog { width: min(32rem, calc(100% - 2rem)); max-height: 85dvh; padding: 0; border: 0; border-radius: 1.25rem; color: var(--ink); background: var(--white); }
+.study-editor-dialog::backdrop { background: #112c0f55; backdrop-filter: blur(5px); }
+.study-editor-dialog > .panel { margin: 0; border: 0; box-shadow: none; padding: 1.25rem; }
+@media (max-width: 600px) {
+  .study-editor-dialog { margin: auto auto 0; width: 100%; max-width: none; border-radius: 1.25rem 1.25rem 0 0; animation: study-editor-enter .2s ease-out; }
+  .study-editor-dialog > .panel { padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)); }
+}
+@keyframes study-editor-enter { from { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) { .study-editor-dialog { animation: none; } }
