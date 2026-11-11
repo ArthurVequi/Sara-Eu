@@ -15,7 +15,6 @@
     "motion": "14.12.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "sharp": "^0.35.5",
     "web-push": "^4.0.0"
   },
   "devDependencies": {
@@ -24,9 +23,5 @@
     "typescript": "^5.8.0",
     "vite": "^7.0.0",
     "vite-plugin-pwa": "^1.0.0"
-  },
-  "optionalDependencies": {
-    "@ffmpeg-binary/linux-x64": "7.0.0",
-    "@ffmpeg-binary/win32-x64": "7.0.0"
   }
 }

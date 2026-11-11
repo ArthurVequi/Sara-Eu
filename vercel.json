@@ -1,7 +1,4 @@
 {
   "framework": "vite",
-  "functions": {
-    "api/drive.js": { "maxDuration": 120, "includeFiles": "node_modules/@ffmpeg-binary/linux-x64/ffmpeg" }
-  },
   "crons": [{ "path": "/api/morning", "schedule": "0 10 * * *" }]
 }

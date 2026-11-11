@@ -2,7 +2,6 @@ import Dexie, { type Table } from 'dexie'
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { cloud, enableMorningPush } from './cloud'
-import { DriveFiles, prepareDriveFolders, startDriveQueue } from './DriveFiles'
 import './style.css'
 import { SplashScreen } from './SplashScreen'
 
@@ -130,7 +129,6 @@ function App() {
         await refresh()
         setConflict(undefined)
         setMessage('Sincronização concluída')
-        void prepareDriveFolders(next.entries.filter(item => item.kind === 'Matéria').map(item => item.id)).catch(() => {})
       })
     } catch {
       setMessage('Sincronização indisponível. Alterações continuam neste aparelho.')
@@ -139,12 +137,11 @@ function App() {
 
   useEffect(() => {
     if (!ready || !cloud) return
-    const stopQueue = startDriveQueue()
     const sync = () => void synchronize()
     sync()
     window.addEventListener('online', sync)
     const timer = window.setInterval(sync, 20_000)
-    return () => { stopQueue(); window.removeEventListener('online', sync); window.clearInterval(timer) }
+    return () => { window.removeEventListener('online', sync); window.clearInterval(timer) }
   }, [ready])
 
   async function refresh() {
@@ -205,8 +202,7 @@ function App() {
   }
 
   async function remove(entry: Entry) {
-    const note = entry.kind === 'Matéria' || entry.kind === 'Tema' ? '\nOs arquivos permanecerão no Google Drive.' : ''
-    if (!window.confirm(`Excluir “${entry.title}” do espaço compartilhado?${note}`)) return
+    if (!window.confirm(`Excluir “${entry.title}” do espaço compartilhado?`)) return
     try {
       const removed = await db.transaction('rw', db.entries, async () => {
         if ((await db.entries.toArray()).some(item => item.parent === entry.id || item.contentId === entry.id)) return false
@@ -375,11 +371,9 @@ function App() {
             {theme === content.id && <div className="subject-content">
               {content.detail && <p>{content.detail}</p>}
               {entries.some(entry => entry.contentId === content.id) && list(entries.filter(entry => entry.contentId === content.id))}
-              {cloud && <DriveFiles subject={content.id} title="Arquivos do conteúdo" />}
             </div>}
           </li>)}</ul>}
           {list(entries.filter(entry => entry.parent === item.id && entry.kind !== 'Tema' && !themes.some(content => content.id === entry.contentId)), themes.length ? '' : 'Nenhum conteúdo cadastrado.')}
-          {cloud && <DriveFiles subject={item.id} title="Arquivos gerais da matéria" />}
         </div>}
       </li>)}</ul> : <p className="empty-state">Nenhuma matéria cadastrada.</p>}
       </details>}
