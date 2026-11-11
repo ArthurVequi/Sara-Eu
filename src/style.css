@@ -189,8 +189,8 @@ main:has(.study-actions) { padding-bottom: calc(5rem + env(safe-area-inset-botto
 .subject-list > li { display: block; }
 .subject-list > li:first-child { border-top: 0; }
 .subject-toggle { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; }
-.subject-row { display: flex; align-items: center; gap: .25rem; }
-.subject-edit { display: grid; place-items: center; width: 44px; flex: none; border: 0; color: var(--forest); }
+.subject-row { display: flex; align-items: center; gap: 0; }
+.subject-edit { display: grid; place-items: center; width: 36px; padding-inline: 0; flex: none; border: 0; color: var(--forest); }
 .subject-content { padding: .25rem .5rem .75rem; }
 .subject-content > label, .subject-content > .panel { margin-top: .65rem; }
 .weekday-dialog > div { display: grid; gap: .3rem; margin-top: .65rem; }
