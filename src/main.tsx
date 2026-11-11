@@ -62,6 +62,7 @@ function App() {
   const [message, setMessage] = useState('')
   const [conflict, setConflict] = useState<Snapshot>()
   const [subject, setSubject] = useState('')
+  const [studyActionsOpen, setStudyActionsOpen] = useState(false)
   const [theme, setTheme] = useState('')
   const [day, setDay] = useState(linkedDay && /^\d{4}-\d{2}-\d{2}$/.test(linkedDay) ? linkedDay : today)
   const [pushMessage, setPushMessage] = useState('')
@@ -232,6 +233,7 @@ function App() {
 
   function navigate(area: typeof tab) {
     setTab(area)
+    setStudyActionsOpen(false)
     setEditing(undefined)
     setError('')
     window.scrollTo(0, 0)
@@ -280,8 +282,10 @@ function App() {
       </dl></section>
     </div>}
     {ready && tab !== 'Início' && <section className="panel">
-      <div className="toolbar"><h2>{tab === 'Semana' ? 'Calendário' : tab === 'Estudos' ? 'Matérias e conteúdos' : 'Lançamentos em pesos argentinos'}</h2>
-        <button hidden={tab === 'Semana' && !!editing} className={tab === 'Semana' ? 'primary calendar-add' : 'primary'} onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: tab, date: tab === 'Finanças' ? month === today.slice(0, 7) ? today : month + '-01' : day, kind: tab === 'Estudos' ? subject ? 'Tema' : 'Matéria' : tab === 'Finanças' ? 'Gasto' : undefined, parent: tab === 'Estudos' ? subject || undefined : undefined })}>{tab === 'Semana' ? <><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg> Novo compromisso</> : '+ Adicionar'}</button></div>
+      {tab !== 'Estudos' && <>
+      <div className="toolbar"><h2>{tab === 'Semana' ? 'Calendário' : 'Lançamentos em pesos argentinos'}</h2>
+        <button hidden={tab === 'Semana' && !!editing} className={tab === 'Semana' ? 'primary calendar-add' : 'primary'} onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: tab, date: tab === 'Finanças' ? month === today.slice(0, 7) ? today : month + '-01' : day, kind: tab === 'Finanças' ? 'Gasto' : undefined })}>{tab === 'Semana' ? <><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg> Novo compromisso</> : '+ Adicionar'}</button></div>
+      </>}
       {tab === 'Semana' && <>
         <div className="toolbar week-controls" role="group" aria-label="Navegação por mês">
           <button aria-label="Mês anterior" onClick={() => setDay(shiftDay(firstDay, -1).slice(0, 7) + '-01')}>‹</button>
@@ -309,9 +313,12 @@ function App() {
       {tab === 'Semana' && entries.some(item => item.area === 'Semana' && !item.date) && <section className="week-day">
         <h3>Sem data</h3>{list(entries.filter(item => item.area === 'Semana' && !item.date))}
       </section>}
-      {tab === 'Estudos' && <label>Matéria<select value={subject} onChange={event => { setSubject(event.target.value); setTheme('') }}>
-        <option value="">Todas</option>{subjects.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
-      </select></label>}
+      {tab === 'Estudos' && (subject ? <div className="toolbar">
+        <h2>{subjects.find(item => item.id === subject)?.title}</h2>
+        <button onClick={() => { setSubject(''); setTheme(''); setEditing(undefined) }}>Todas as matérias</button>
+      </div> : subjects.length ? <ul>{subjects.map(item => <li key={item.id}>
+        <button className="entry" onClick={() => { setSubject(item.id); setTheme(''); setEditing(undefined) }}><strong>{item.title}</strong></button>
+      </li>)}</ul> : <p className="empty-state">Nenhuma matéria cadastrada.</p>)}
       {tab === 'Estudos' && themes.length > 0 && <label>Arquivos do tema<select value={theme} onChange={event => setTheme(event.target.value)}>
         <option value="">Arquivos gerais da matéria</option>{themes.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
       </select></label>}
@@ -324,12 +331,25 @@ function App() {
         })}</div>
         {limit !== undefined && <p>Limite do mês: {money.format(limit)}{spent > limit ? ' · Limite ultrapassado' : ''}</p>}
       </>}
-      {tab !== 'Semana' && list(entries.filter(item => {
+      {tab !== 'Semana' && (tab !== 'Estudos' || !!subject) && list(entries.filter(item => {
         if (item.area !== tab) return false
         if (tab === 'Estudos') return !subject || item.id === subject || item.parent === subject
         return accounts.includes(item) || (expenses.includes(item) && (!item.paymentFor || !planned.some(plan => plan.id === item.paymentFor))) || planned.includes(item) || (item.kind === 'Limite' && item.date?.startsWith(month))
       }))}
     </section>}
+    {ready && tab === 'Estudos' && !editing && <div className="study-actions">
+      <div id="study-create-options" hidden={!studyActionsOpen}>
+        {(['Matéria', 'Tema', 'Prova', 'Revisão'] as const).map(kind => <button key={kind} type="button" onClick={() => {
+          setStudyActionsOpen(false)
+          setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Estudos', kind, date: day,
+            parent: kind === 'Matéria' ? undefined : subject || undefined })
+        }}>{kind === 'Tema' ? 'Novo tema' : `Nova ${kind.toLowerCase()}`}</button>)}
+      </div>
+      <button className="primary study-toggle" type="button" aria-label={studyActionsOpen ? 'Fechar opções' : 'Adicionar em Estudos'}
+        aria-expanded={studyActionsOpen} aria-controls="study-create-options" onClick={() => setStudyActionsOpen(open => !open)}>
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg>
+      </button>
+    </div>}
     {tab === 'Estudos' && fileTarget && cloud && <DriveFiles key={fileTarget} subject={fileTarget} title={fileTarget === subject ? 'Arquivos da matéria' : 'Arquivos do tema'} />}
     {editing && <section key={editing.id} className={editing.area === 'Semana' ? 'panel commitment-editor' : 'panel'} aria-label="Editar item"><form onSubmit={save}>
       {editing.area === 'Semana' && <h1>{entries.some(item => item.id === editing.id) ? 'Editar compromisso' : 'Novo compromisso'}</h1>}

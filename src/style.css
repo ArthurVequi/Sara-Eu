@@ -165,3 +165,15 @@ main:has(.calendar-add:not([hidden])) { padding-bottom: calc(5rem + env(safe-are
   border-width: 0 2px 2px 0;
   transform: translateY(-1px) rotate(45deg);
 }
+.study-actions { position: fixed; z-index: 9; right: max(1rem, env(safe-area-inset-right)); bottom: calc(1rem + env(safe-area-inset-bottom)); display: grid; justify-items: end; gap: .5rem; }
+.study-actions > div:not([hidden]) { display: grid; gap: .4rem; justify-items: end; }
+.study-actions button { box-shadow: 0 4px 14px #112c0f24; }
+.study-toggle { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; }
+.study-toggle svg { transition: transform .18s ease; }
+.study-toggle[aria-expanded="true"] svg { transform: rotate(45deg); }
+main:has(.study-actions) { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
+@media (max-width: 600px) {
+  .study-actions { bottom: calc(5rem + env(safe-area-inset-bottom)); }
+  main:has(.study-actions) { padding-bottom: calc(9rem + env(safe-area-inset-bottom)); }
+}
+@media (prefers-reduced-motion: reduce) { .study-toggle svg { transition: none; } }
