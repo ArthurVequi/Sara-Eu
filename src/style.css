@@ -197,3 +197,4 @@ main:has(.study-actions) { padding-bottom: calc(5rem + env(safe-area-inset-botto
 .weekday-dialog > div button { text-align: left; }
 .subject-picker { max-height: min(32rem, 85dvh); }
 .subject-picker button { overflow-wrap: anywhere; }
+.study-deadlines summary { cursor: pointer; font-weight: 750; }

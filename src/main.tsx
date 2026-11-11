@@ -291,9 +291,9 @@ function App() {
         <div><dt>Gasto</dt><dd>{money.format(current.spent)}</dd></div>
       </dl></section>
     </div>}
-    {ready && tab === 'Estudos' && studyDeadlines.length > 0 && <section className="panel study-deadlines">
-      <h2>Próximos prazos</h2>
-      <ul>{studyDeadlines.map(entry => <li key={entry.id}>
+    {ready && tab === 'Estudos' && <details className="panel study-deadlines" open>
+      <summary>Próximos prazos</summary>
+      {studyDeadlines.length ? <ul>{studyDeadlines.map(entry => <li key={entry.id}>
         <button className="entry" onClick={() => {
           setSubject(entry.parent ?? '')
           setTheme(entry.contentId ?? '')
@@ -305,8 +305,8 @@ function App() {
             subjects.find(item => item.id === entry.parent)?.title,
             entries.find(item => item.id === entry.contentId)?.title].filter(Boolean).join(' · ')}</small>
         </button>
-      </li>)}</ul>
-    </section>}
+      </li>)}</ul> : <p className="empty-state">Ufa! Nenhuma prova ou revisão marcada.</p>}
+    </details>}
     {ready && tab !== 'Início' && <section className="panel">
       {tab !== 'Estudos' && <>
       <div className="toolbar"><h2>{tab === 'Semana' ? 'Calendário' : 'Lançamentos em pesos argentinos'}</h2>
