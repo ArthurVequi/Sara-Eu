@@ -130,7 +130,6 @@ main:has(.calendar-add:not([hidden])) { padding-bottom: calc(5rem + env(safe-are
   main:has(.calendar-add:not([hidden])) { padding-bottom: calc(9rem + env(safe-area-inset-bottom)); }
 }
 .calendar-add:not([hidden]) { display: inline-flex; align-items: center; gap: .35rem; }
-.commitment-page > :not(.commitment-editor):not([role="alert"]) { display: none; }
 .commitment-editor { max-width: 32rem; margin-inline: auto; }
 .commitment-editor form { gap: 1rem; }
 .commitment-editor .check input { appearance: none; border: 1.5px solid var(--forest); border-radius: 50%; display: grid; place-items: center; }
