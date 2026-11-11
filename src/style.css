@@ -172,7 +172,8 @@ li > input[type="checkbox"]:checked::before {
 .study-toggle, .finance-toggle { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; }
 .study-toggle svg, .finance-toggle svg { transition: transform .18s ease; }
 .study-toggle[aria-expanded="true"] svg, .finance-toggle[aria-expanded="true"] svg { transform: rotate(45deg); }
-.finance-action-groups button { min-width: 8.25rem; }
+.finance-action-groups button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-width: 8.25rem; }
+.finance-action-groups svg { flex: none; }
 .finance-action-types button { min-width: 10.25rem; }
 .finance-entries > li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: .5rem; }
 .finance-entries .entry { width: 100%; min-width: 0; overflow-wrap: anywhere; }

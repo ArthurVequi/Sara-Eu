@@ -437,6 +437,9 @@ function App() {
         {(Object.keys(financeActionGroups) as Array<keyof typeof financeActionGroups>).map(group => <button key={group} type="button"
           aria-expanded={financeActionGroup === group} aria-controls="finance-type-options"
           onClick={() => setFinanceActionGroup(current => current === group ? undefined : group)}>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d={group === 'Entrada' ? 'M12 17V3m-6 8l6 6l6-6m1 10H5' : 'm18 9-6-6-6 6m6-6v14m-7 4h14'} />
+          </svg>
           {group}
         </button>)}
       </div>
