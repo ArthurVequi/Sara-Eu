@@ -236,10 +236,10 @@ function App() {
     }
   }
 
-  function list(items: Entry[], empty = 'Nenhum item por aqui.') {
+  function list(items: Entry[], empty = 'Nenhum item por aqui.', className = '') {
     const ordered = [...items].sort((a, b) =>
       (a.startTime || '24:00').localeCompare(b.startTime || '24:00'))
-    return ordered.length ? <ul>{ordered.map(entry => <li key={entry.id}>
+    return ordered.length ? <ul className={className}>{ordered.map(entry => <li key={entry.id}>
       {entry.area === 'Semana' && !entry.weekly && <input type="checkbox" checked={!!entry.done} aria-label={`Concluir ${entry.title}`} onChange={() => void toggle(entry)} />}
       <button className="entry" onClick={() => setEditing(entry)}>
         <strong>{entry.title}</strong>
@@ -408,7 +408,7 @@ function App() {
       {tab === 'Finanças' && list(entries.filter(item => {
         if (item.area !== tab) return false
         return accounts.includes(item) || (expenses.includes(item) && (!item.paymentFor || !planned.some(plan => plan.id === item.paymentFor))) || planned.includes(item) || (item.kind === 'Limite' && item.date?.startsWith(month))
-      }))}
+      }), 'Nenhum item por aqui.', 'finance-entries')}
     </section>}
     {ready && tab === 'Estudos' && !editing && <div className="study-actions">
       <div id="study-create-options" hidden={!studyActionsOpen}>
@@ -431,13 +431,12 @@ function App() {
           setFinanceActionGroup(undefined)
           setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind,
             date: kind === 'Conta' ? undefined : month === today.slice(0, 7) ? today : `${month}-01` })
-        }}>{kind === 'Limite' ? 'Limite mensal' : `Novo ${kind.toLowerCase()}`}</button>)}
+        }}>{kind === 'Conta' ? 'Adicionar saldo' : kind === 'Limite' ? 'Limite mensal' : `Novo ${kind.toLowerCase()}`}</button>)}
       </div>
       <div id="finance-create-options" className="finance-action-groups" hidden={!financeActionsOpen}>
         {(Object.keys(financeActionGroups) as Array<keyof typeof financeActionGroups>).map(group => <button key={group} type="button"
           aria-expanded={financeActionGroup === group} aria-controls="finance-type-options"
           onClick={() => setFinanceActionGroup(current => current === group ? undefined : group)}>
-          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={group === 'Entrada' ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6'} /></svg>
           {group}
         </button>)}
       </div>
