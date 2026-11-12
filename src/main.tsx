@@ -6,7 +6,7 @@ import './style.css'
 import { SplashScreen } from './SplashScreen'
 
 type Area = 'Semana' | 'Estudos' | 'Finanças'
-type Kind = 'Matéria' | 'Tema' | 'Prova' | 'Revisão' | 'Conta' | 'Gasto' | 'Conta fixa' | 'Parcela' | 'Limite'
+type Kind = 'Matéria' | 'Tema' | 'Prova' | 'Revisão' | 'Conta' | 'Entrada' | 'Gasto' | 'Conta fixa' | 'Parcela' | 'Limite'
 type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number; paymentFor?: string; weekday?: number; contentId?: string }
 const areas: Area[] = ['Semana', 'Estudos', 'Finanças']
 const emptyDeadlineMessages = [
@@ -32,9 +32,8 @@ const examples: Entry[] = [
   { id: 'demo-account', area: 'Finanças', title: 'Carteira', detail: 'Saldo informado', kind: 'Conta', amount: 120000, color: '#112c0f' },
   { id: 'demo-expense', area: 'Finanças', title: 'Material de estudo', detail: '', kind: 'Gasto', category: 'Estudos', parent: 'demo-account', date: today, amount: 18500 },
 ]
-const financeKinds: Kind[] = ['Gasto', 'Conta', 'Conta fixa', 'Parcela', 'Limite']
 const financeActionGroups = {
-  Entrada: ['Conta', 'Limite'],
+  Entrada: ['Entrada'],
   'Saída': ['Gasto', 'Conta fixa', 'Parcela'],
 } as const
 type Snapshot = { version: number; entries: Entry[] }
@@ -170,8 +169,8 @@ function App() {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!editing || !editing.title.trim()) return
-    if (!editing.date && (editing.weekly || editing.kind === 'Prova' || editing.kind === 'Revisão')) {
+    if (!editing || (editing.kind !== 'Entrada' && !editing.title.trim())) return
+    if (!editing.date && (editing.weekly || editing.kind === 'Prova' || editing.kind === 'Revisão' || (editing.area === 'Finanças' && editing.kind !== 'Conta'))) {
       setError('Escolha uma data antes de salvar.')
       return
     }
@@ -264,7 +263,9 @@ function App() {
         <strong>{entry.title}</strong>
         <small>{entry.kind ?? 'Gasto'}</small>
       </button>
-      <strong className="finance-entry-value">{money.format(entry.amount ?? 0)}</strong>
+      <strong className="finance-entry-value">{money.format(entry.kind === 'Conta'
+        ? (entry.amount ?? 0) + entries.filter(item => item.kind === 'Entrada' && item.parent === entry.id && item.date?.startsWith(month)).reduce((sum, item) => sum + (item.amount ?? 0), 0)
+        : entry.amount ?? 0)}</strong>
     </li>)}</ul> : <p className="empty-state">Nenhum lançamento neste mês.</p>
   }
 
@@ -420,7 +421,7 @@ function App() {
       </>}
       {tab === 'Finanças' && financeList(entries.filter(item => {
         if (item.area !== tab) return false
-        return accounts.includes(item) || (expenses.includes(item) && (!item.paymentFor || !planned.some(plan => plan.id === item.paymentFor))) || planned.includes(item) || (item.kind === 'Limite' && item.date?.startsWith(month))
+        return accounts.includes(item) || (item.kind === 'Entrada' && item.date?.startsWith(month)) || (expenses.includes(item) && (!item.paymentFor || !planned.some(plan => plan.id === item.paymentFor))) || planned.includes(item) || (item.kind === 'Limite' && item.date?.startsWith(month))
       }))}
     </section>}
     {ready && tab === 'Estudos' && !editing && <div className="study-actions">
@@ -442,9 +443,9 @@ function App() {
         {financeActionGroup && financeActionGroups[financeActionGroup].map(kind => <button key={kind} type="button" onClick={() => {
           setFinanceActionsOpen(false)
           setFinanceActionGroup(undefined)
-          setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind,
-            date: kind === 'Conta' ? undefined : month === today.slice(0, 7) ? today : `${month}-01` })
-        }}>{kind === 'Conta' ? 'Adicionar saldo' : kind === 'Limite' ? 'Limite mensal' : `Novo ${kind.toLowerCase()}`}</button>)}
+          setEditing({ id: crypto.randomUUID(), title: kind === 'Entrada' ? 'Adicionar saldo' : '', detail: '', area: 'Finanças', kind,
+            date: month === today.slice(0, 7) ? today : `${month}-01` })
+        }}>{kind === 'Entrada' ? 'Adicionar saldo' : kind === 'Limite' ? 'Limite mensal' : `Novo ${kind.toLowerCase()}`}</button>)}
       </div>
       <div id="finance-create-options" className="finance-action-groups" hidden={!financeActionsOpen}>
         {(Object.keys(financeActionGroups) as Array<keyof typeof financeActionGroups>).map(group => <button key={group} type="button"
@@ -464,30 +465,27 @@ function App() {
         <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg>
       </button>
     </div>}
-    {editing && <ItemEditor key={editing.id} modal={editing.area !== 'Finanças'} onCancel={() => { setEditing(undefined); setError('') }}>
+    {editing && <ItemEditor key={editing.id} modal onCancel={() => { setEditing(undefined); setError('') }}>
       <section className={fullEditor ? 'panel commitment-editor' : 'panel'} aria-label="Editar item"><form onSubmit={save}>
       {editing.area === 'Semana' && <h1 id="item-editor-title">{entries.some(item => item.id === editing.id) ? 'Editar compromisso' : 'Novo compromisso'}</h1>}
       {editing.area === 'Estudos' && <h1 id="item-editor-title">{entries.some(item => item.id === editing.id) ? `Editar ${editing.kind === 'Tema' ? 'conteúdo' : editing.kind?.toLowerCase() ?? 'item'}` : editing.kind === 'Tema' ? 'Novo conteúdo' : `Nova ${editing.kind?.toLowerCase() ?? 'matéria'}`}</h1>}
-      {editing.area !== 'Finanças' && error && <p role="alert">{error}</p>}
-      <label>{editing.kind === 'Matéria' ? 'Nome da matéria' : editing.kind === 'Tema' ? 'Nome do conteúdo' : 'Título'}<input autoFocus required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>
-      {editing.area === 'Finanças' && <label>Tipo<select value={editing.kind ?? 'Gasto'} onChange={event => setEditing({ ...editing, kind: event.target.value as Kind })}>
-        {financeKinds.map(kind => <option key={kind}>{kind}</option>)}
-      </select></label>}
+      {editing.area === 'Finanças' && <h1 id="item-editor-title">{editing.kind === 'Entrada' ? 'Adicionar saldo' : entries.some(item => item.id === editing.id) ? 'Editar lançamento' : editing.kind === 'Conta fixa' ? 'Nova conta fixa' : editing.kind === 'Parcela' ? 'Nova parcela' : editing.kind === 'Limite' ? 'Limite mensal' : 'Novo gasto'}</h1>}
+      {error && <p role="alert">{error}</p>}
+      {(editing.area !== 'Finanças' || editing.kind !== 'Entrada') && <label>{editing.kind === 'Matéria' ? 'Nome da matéria' : editing.kind === 'Tema' ? 'Nome do conteúdo' : editing.kind === 'Conta' ? 'Nome da conta' : 'Título'}<input autoFocus required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>}
       {editing.area === 'Estudos' && editing.kind !== 'Matéria' && <SubjectPicker items={subjects} value={editing.parent}
         onChange={parent => setEditing({ ...editing, parent, contentId: parent === editing.parent ? editing.contentId : undefined })} />}
       {editing.parent && (editing.kind === 'Prova' || editing.kind === 'Revisão') && <SubjectPicker label="Conteúdo"
         items={entries.filter(item => item.kind === 'Tema' && item.parent === editing.parent)}
         value={editing.contentId} onChange={contentId => setEditing({ ...editing, contentId })} />}
-      {editing.area === 'Finanças' && ['Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && <label>Conta<select value={editing.parent ?? ''} onChange={event => setEditing({ ...editing, parent: event.target.value || undefined })}>
+      {editing.area === 'Finanças' && ['Entrada', 'Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && <label>Onde<select required value={editing.parent ?? ''} onChange={event => setEditing({ ...editing, parent: event.target.value || undefined })}>
         <option value="">Selecionar</option>{accounts.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
       </select></label>}
-      {editing.area === 'Finanças' && <label>Categoria<input value={editing.category ?? ''} onChange={event => setEditing({ ...editing, category: event.target.value })} /></label>}
-      {editing.kind === 'Conta' && <label>Cor da conta<input type="color" value={editing.color ?? '#112c0f'} onChange={event => setEditing({ ...editing, color: event.target.value })} /></label>}
+      {editing.area === 'Finanças' && ['Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && <label>Categoria<input value={editing.category ?? ''} onChange={event => setEditing({ ...editing, category: event.target.value })} /></label>}
       {editing.kind === 'Parcela' && <label>Número de parcelas<input required type="number" min="2" step="1" value={editing.installments ?? ''} onChange={event => setEditing({ ...editing, installments: event.target.valueAsNumber || undefined })} /></label>}
-      {editing.area !== 'Semana' && <label>{editing.area === 'Estudos' ? 'Descrição (opcional)' : 'Detalhes'}<input value={editing.detail} onChange={event => setEditing({ ...editing, detail: event.target.value })} /></label>}
+      {editing.area !== 'Semana' && editing.area !== 'Finanças' && <label>{editing.area === 'Estudos' ? 'Descrição (opcional)' : 'Detalhes'}<input value={editing.detail} onChange={event => setEditing({ ...editing, detail: event.target.value })} /></label>}
       {editing.kind === 'Matéria' && <SubjectWeekday value={editing.weekday} onChange={weekday => setEditing({ ...editing, weekday })} />}
       {(fullEditor || editing.kind === 'Prova' || editing.kind === 'Revisão') && <EditorDate value={editing.date} onChange={date => setEditing({ ...editing, date })} />}
-      {editing.area === 'Finanças' && <label>Data<input type="date" required={editing.kind !== 'Conta'} value={editing.date ?? ''} onChange={event => setEditing({ ...editing, date: event.target.value })} /></label>}
+      {editing.area === 'Finanças' && editing.kind !== 'Conta' && <EditorDate compact value={editing.date} onChange={date => setEditing({ ...editing, date })} />}
       {(editing.area === 'Semana' || editing.kind === 'Matéria') &&
         <label>Horário<input type="text" inputMode="numeric" placeholder="HH:MM"
           pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Digite um horário de 00:00 a 23:59"
@@ -579,7 +577,7 @@ function SubjectWeekday({ value, onChange }: { value?: number; onChange: (weekda
   </div>
 }
 
-function EditorDate({ value, onChange }: { value?: string; onChange: (date: string) => void }) {
+function EditorDate({ value, onChange, compact = false }: { value?: string; onChange: (date: string) => void; compact?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const [first, setFirst] = useState((value || today).slice(0, 7) + '-01')
   const start = new Date(first)
@@ -590,7 +588,7 @@ function EditorDate({ value, onChange }: { value?: string; onChange: (date: stri
     <button type="button" aria-haspopup="dialog" onClick={() => {
       setFirst((value || today).slice(0, 7) + '-01')
       dialog.current?.showModal()
-    }}>{value ? weekDayLabel.format(new Date(value)) : 'Escolher data'}</button>
+    }}>{value ? compact ? value.slice(8, 10) + '/' + value.slice(5, 7) : weekDayLabel.format(new Date(value)) : 'Escolher data'}</button>
     <dialog ref={dialog} className="date-dialog" aria-labelledby="commitment-calendar-title">
       <h2 id="commitment-calendar-title">Escolher data</h2>
       <div className="toolbar week-controls">
@@ -614,10 +612,11 @@ function EditorDate({ value, onChange }: { value?: string; onChange: (date: stri
 
 function financeSummary(entries: Entry[], month: string) {
   const expenses = entries.filter(entry => entry.area === 'Finanças' && (!entry.kind || entry.kind === 'Gasto') && entry.date?.startsWith(month))
+  const additions = entries.filter(entry => entry.kind === 'Entrada' && entry.date?.startsWith(month))
   const planned = entries.filter(entry => isReserved(entry, month))
   const total = (items: Entry[]) => items.reduce((sum, entry) => sum + (entry.amount ?? 0), 0)
   const reserved = total(planned.filter(entry => !expenses.some(expense => expense.id === paymentId(entry.id, month))))
-  return { expenses, planned, reserved, spent: total(expenses), available: total(entries.filter(entry => entry.kind === 'Conta')) - reserved }
+  return { expenses, planned, reserved, spent: total(expenses), available: total(entries.filter(entry => entry.kind === 'Conta')) + total(additions) - reserved }
 }
 
 function paymentId(entryId: string, month: string) {
