@@ -43,6 +43,7 @@ const db = new Dexie(cloud ? 'organiza-ai-shared' : 'organiza-ai') as Dexie & {
 }
 db.version(1).stores({ entries: 'id, area', settings: 'id' })
 const money = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', currencyDisplay: 'code' })
+const compactMoney = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 function occursOn(entry: Entry, day: string) {
   if (entry.kind === 'Matéria') return entry.weekday === new Date(day).getUTCDay()
@@ -344,9 +345,9 @@ function App() {
       <section className="panel dashboard-today"><div className="toolbar"><h2>Hoje</h2><button className="text-action" onClick={() => { setDay(today); navigate('Semana') }}>Ver agenda</button></div>{list(entries.filter(item => occursOn(item, today)), 'Nenhum compromisso para hoje.')}</section>
       <section className="dashboard-study-summary" aria-label="Resumo de estudos"><button className="panel study-summary-card" onClick={() => navigate('Estudos')}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 10 9-5 9 5-9 5zM7 12v5c0 1.5 2.2 3 5 3s5-1.5 5-3v-5" /></svg><small>Próxima prova</small><strong>{exams[0] ? `${Math.max(0, Math.ceil((Date.parse(exams[0].date!) - Date.parse(today)) / 86_400_000))} dias` : 'Livre'}</strong><span>{exams[0]?.title ?? 'Nenhuma prova marcada'}</span></button><button className="panel study-summary-card" onClick={() => navigate('Estudos')}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg><small>Revisões pendentes</small><strong>{entries.filter(item => item.kind === 'Revisão' && !item.done && item.date && item.date <= today).length}</strong><span>Para concluir</span></button></section>
       <section className="panel dashboard-finance"><div className="toolbar"><h2>Resumo financeiro</h2><button className="text-action" onClick={() => { setMonth(today.slice(0, 7)); navigate('Finanças') }}>Ver finanças</button></div><dl className="dashboard-money">
-        <div><dt>Disponível</dt><dd>{money.format(current.available)}</dd></div>
-        <div><dt>Reservado</dt><dd>{money.format(current.reserved)}</dd></div>
-        <div><dt>Gasto</dt><dd>{money.format(current.spent)}</dd></div>
+        <div><dt>Disponível</dt><dd aria-label={money.format(current.available)}>{compactMoney.format(current.available)}</dd></div>
+        <div><dt>Reservado</dt><dd aria-label={money.format(current.reserved)}>{compactMoney.format(current.reserved)}</dd></div>
+        <div><dt>Gasto</dt><dd aria-label={money.format(current.spent)}>{compactMoney.format(current.spent)}</dd></div>
       </dl></section>
     </div>}
     {ready && tab === 'Estudos' && <section className="panel focus-panel"><div className="toolbar"><h2>Foco</h2><strong aria-live="polite">{formatFocusTime(focusSeconds)}</strong></div><div className="focus-controls"><select aria-label="Matéria do foco" value={focusSubject} onChange={event => setFocusSubject(event.target.value)}><option value="">Sem matéria vinculada</option>{subjects.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select>{[25, 50].map(minutes => <button key={minutes} type="button" aria-pressed={focusMinutes === minutes} onClick={() => { setFocusMinutes(minutes); setFocusSeconds(minutes * 60); setFocusRunning(false) }}>{minutes} min</button>)}<button className="primary" type="button" onClick={() => { if (!focusRunning && focusSeconds === 0) setFocusSeconds(focusMinutes * 60); setFocusRunning(running => !running) }}>{focusRunning ? 'Pausar' : 'Começar'}</button></div><small>{focusSubject ? `${subjects.find(item => item.id === focusSubject)?.focusMinutes ?? 0} min registrados nesta matéria` : 'Selecione uma matéria para registrar o tempo.'}</small></section>}
