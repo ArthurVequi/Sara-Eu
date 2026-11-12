@@ -6,8 +6,8 @@ import './style.css'
 import { SplashScreen } from './SplashScreen'
 
 type Area = 'Semana' | 'Estudos' | 'Finanças'
-type Kind = 'Matéria' | 'Tema' | 'Prova' | 'Revisão' | 'Conta' | 'Entrada' | 'Gasto' | 'Conta fixa' | 'Parcela' | 'Limite'
-type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number; paymentFor?: string; weekday?: number; contentId?: string }
+type Kind = 'Matéria' | 'Tema' | 'Prova' | 'Revisão' | 'Hábito' | 'Conta' | 'Entrada' | 'Gasto' | 'Conta fixa' | 'Parcela' | 'Limite' | 'Meta financeira'
+type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number; paymentFor?: string; weekday?: number; contentId?: string; habitDays?: string[]; smartReview?: boolean; goalId?: string; focusMinutes?: number }
 const areas: Area[] = ['Semana', 'Estudos', 'Finanças']
 const emptyDeadlineMessages = [
   'Ufa! Nenhuma prova ou revisão marcada.',
@@ -85,8 +85,18 @@ function App() {
   const [day, setDay] = useState(linkedDay && /^\d{4}-\d{2}-\d{2}$/.test(linkedDay) ? linkedDay : today)
   const [pushMessage, setPushMessage] = useState('')
   const [month, setMonth] = useState(today.slice(0, 7))
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false)
+  const [focusMinutes, setFocusMinutes] = useState(25)
+  const [focusSeconds, setFocusSeconds] = useState(25 * 60)
+  const [focusRunning, setFocusRunning] = useState(false)
+  const [focusSubject, setFocusSubject] = useState('')
+  const [notificationSettings, setNotificationSettings] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('organiza-notifications') ?? '{"agenda":true,"estudos":true,"financas":true}') as Record<string, boolean> } catch { return { agenda: true, estudos: true, financas: true } }
+  })
   const accounts = entries.filter(entry => entry.kind === 'Conta')
   const subjects = entries.filter(entry => entry.kind === 'Matéria')
+  const habits = entries.filter(entry => entry.kind === 'Hábito')
+  const financialGoals = entries.filter(entry => entry.kind === 'Meta financeira')
   const studyDeadlines = entries
     .filter(entry => (entry.kind === 'Prova' || entry.kind === 'Revisão') && !entry.done && entry.date && entry.date >= today)
     .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
@@ -102,6 +112,11 @@ function App() {
   const exams = entries.filter(entry => entry.kind === 'Prova' && entry.date && entry.date >= today)
     .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '')).slice(0, 3)
   const limit = entries.find(entry => entry.kind === 'Limite' && entry.date?.startsWith(month))?.amount
+  const notifications = [
+    ...(notificationSettings.agenda ? entries.filter(item => item.area === 'Semana' && occursOn(item, today) && !item.done).map(item => `Hoje: ${item.title}`) : []),
+    ...(notificationSettings.estudos ? studyDeadlines.slice(0, 2).map(item => `${item.kind}: ${item.title}`) : []),
+    ...(notificationSettings.financas ? planned.filter(item => !entries.some(payment => payment.id === paymentId(item.id, month))).slice(0, 2).map(item => `A vencer: ${item.title}`) : []),
+  ].slice(0, 5)
 
   async function synchronize(choice?: 'local' | 'remote') {
     if (!cloud || !navigator.onLine) return
@@ -155,6 +170,19 @@ function App() {
     return () => { window.removeEventListener('online', sync); window.clearInterval(timer) }
   }, [ready])
 
+  useEffect(() => { localStorage.setItem('organiza-notifications', JSON.stringify(notificationSettings)) }, [notificationSettings])
+  useEffect(() => {
+    if (!focusRunning) return
+    const timer = window.setInterval(() => setFocusSeconds(seconds => {
+      if (seconds > 1) return seconds - 1
+      window.clearInterval(timer)
+      setFocusRunning(false)
+      if (focusSubject) void db.entries.update(focusSubject, { focusMinutes: (entries.find(item => item.id === focusSubject)?.focusMinutes ?? 0) + focusMinutes }).then(refresh)
+      return 0
+    }), 1_000)
+    return () => window.clearInterval(timer)
+  }, [focusRunning, focusMinutes, focusSubject, entries])
+
   async function refresh() {
     setEntries(await db.entries.toArray())
   }
@@ -170,12 +198,18 @@ function App() {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!editing || (editing.kind !== 'Entrada' && !editing.title.trim())) return
-    if (!editing.date && (editing.weekly || editing.kind === 'Prova' || editing.kind === 'Revisão' || (editing.area === 'Finanças' && editing.kind !== 'Conta'))) {
+    if (!editing.date && (editing.weekly || editing.kind === 'Prova' || editing.kind === 'Revisão' || (editing.area === 'Finanças' && editing.kind !== 'Conta' && editing.kind !== 'Meta financeira'))) {
       setError('Escolha uma data antes de salvar.')
       return
     }
     try {
-      await db.entries.put({ ...editing, title: editing.title.trim() })
+      const next = { ...editing, title: editing.title.trim() }
+      await db.transaction('rw', db.entries, async () => {
+        await db.entries.put(next)
+        if (next.kind === 'Tema' && next.smartReview && !entries.some(item => item.kind === 'Revisão' && item.contentId === next.id)) {
+          await db.entries.bulkPut([1, 3, 7, 14].map(days => ({ id: crypto.randomUUID(), area: 'Estudos' as const, kind: 'Revisão' as const, title: `Revisar ${next.title}`, detail: 'Revisão inteligente', parent: next.parent, contentId: next.id, date: shiftDay(today, days) })))
+        }
+      })
       await refresh()
       setEditing(undefined)
       setError('')
@@ -193,6 +227,14 @@ function App() {
     } catch {
       setError('Não foi possível atualizar a tarefa.')
     }
+  }
+
+  async function toggleHabit(entry: Entry) {
+    const days = entry.habitDays ?? []
+    const habitDays = days.includes(today) ? days.filter(day => day !== today) : [...days, today]
+    await db.entries.update(entry.id, { habitDays })
+    await refresh()
+    void synchronize()
   }
 
   async function togglePayment(entry: Entry) {
@@ -281,18 +323,22 @@ function App() {
     setStudyActionsOpen(false)
     setFinanceActionsOpen(false)
     setFinanceActionGroup(undefined)
+    setQuickActionsOpen(false)
     setEditing(undefined)
     setError('')
     window.scrollTo(0, 0)
   }
 
-  const fullEditor = editing?.area === 'Semana'
+  const fullEditor = editing?.area === 'Semana' && editing.kind !== 'Hábito'
   return <main>
-    <header className="app-header"><span className="brand"><span className="brand-mark" aria-hidden="true"><img src="/organiza-ai.svg" alt="" /></span> Organiza Aí</span><span className="badge" role="status">{cloud ? message || 'Espaço compartilhado' : 'Modo local · demonstração'}</span></header>
-    {cloud && <details className="notifications"><summary>Lembretes</summary><div className="toolbar">
-      <button onClick={() => void enableMorningPush().then(() => setPushMessage('Lembrete matinal ativado neste aparelho.')).catch(error => setPushMessage(error.message))}>Ativar lembrete matinal</button>
-      <span role="status">{pushMessage}</span>
-    </div></details>}
+    <header className="app-header"><span className="brand"><span className="brand-mark" aria-hidden="true"><img src="/organiza-ai.svg" alt="" width="32" height="32" /></span> Organiza Aí</span><span className="badge" role="status">{cloud ? message || 'Espaço compartilhado' : 'Modo local · demonstração'}</span></header>
+    <details className="notifications"><summary>Notificações{notifications.length ? ` · ${notifications.length}` : ''}</summary>
+      {notifications.length ? <ul className="notification-list">{notifications.map((notice, index) => <li key={`${notice}-${index}`}>{notice}</li>)}</ul> : <p className="empty-state">Tudo tranquilo por enquanto.</p>}
+      <div className="notification-settings">
+        {[['agenda', 'Agenda'], ['estudos', 'Estudos'], ['financas', 'Finanças']].map(([key, label]) => <label className="check" key={key}><input type="checkbox" checked={!!notificationSettings[key]} onChange={event => setNotificationSettings(current => ({ ...current, [key]: event.target.checked }))} /> {label}</label>)}
+      </div>
+      {cloud && <div className="toolbar"><button onClick={() => void enableMorningPush().then(() => setPushMessage('Lembrete matinal ativado neste aparelho.')).catch(error => setPushMessage(error.message))}>Ativar lembrete matinal</button><span role="status">{pushMessage}</span></div>}
+    </details>
     {conflict && <section className="panel">
       <h2>Alterações em conflito</h2>
       <p>Compare os itens que serão substituídos antes de escolher.</p>
@@ -310,7 +356,7 @@ function App() {
         <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d={navIcons[index]} />
         </svg>
-        {area}
+        {area === 'Início' ? 'Meu dia' : area}
       </button>)}
     </nav>
     <section className="hero">
@@ -321,6 +367,9 @@ function App() {
     {!ready && !error && <p role="status">Carregando…</p>}
     {ready && tab === 'Início' && <div className="grid dashboard">
       <section className="panel dashboard-today"><div className="toolbar"><h2>Hoje</h2><button className="text-action" onClick={() => { setDay(today); navigate('Semana') }}>Ver agenda</button></div>{list(entries.filter(item => occursOn(item, today)), 'Nenhum compromisso para hoje.')}</section>
+      <section className="panel dashboard-habits"><div className="toolbar"><h2>Rotinas de hoje</h2><button className="text-action" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Semana', kind: 'Hábito', habitDays: [] })}>Adicionar</button></div>
+        {habits.length ? <ul>{habits.map(habit => <li key={habit.id}><input type="checkbox" checked={habit.habitDays?.includes(today) ?? false} aria-label={`Concluir ${habit.title}`} onChange={() => void toggleHabit(habit)} /><button className="entry" onClick={() => setEditing(habit)}><strong>{habit.title}</strong><small>{habitStreak(habit.habitDays)} dias seguidos · {(habit.habitDays ?? []).length} conclusões</small></button></li>)}</ul> : <p className="empty-state">Uma rotina pequena já conta como começo.</p>}
+      </section>
       <section className="panel dashboard-exams"><h2>Próximas provas</h2>{list(exams, 'Nenhuma prova marcada.')}</section>
       <section className="panel dashboard-reviews"><h2>Revisões pendentes</h2>{list(entries.filter(item => item.kind === 'Revisão' && !item.done && item.date && item.date <= today), 'Nenhuma revisão pendente.')}</section>
       <section className="panel dashboard-finance"><div className="toolbar"><h2>Resumo financeiro</h2><button className="text-action" onClick={() => { setMonth(today.slice(0, 7)); navigate('Finanças') }}>Ver finanças</button></div><dl className="dashboard-money">
@@ -329,6 +378,7 @@ function App() {
         <div><dt>Gasto</dt><dd>{money.format(current.spent)}</dd></div>
       </dl></section>
     </div>}
+    {ready && tab === 'Estudos' && <section className="panel focus-panel"><div className="toolbar"><h2>Foco</h2><strong aria-live="polite">{formatFocusTime(focusSeconds)}</strong></div><div className="focus-controls"><select aria-label="Matéria do foco" value={focusSubject} onChange={event => setFocusSubject(event.target.value)}><option value="">Sem matéria vinculada</option>{subjects.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select>{[25, 50].map(minutes => <button key={minutes} type="button" aria-pressed={focusMinutes === minutes} onClick={() => { setFocusMinutes(minutes); setFocusSeconds(minutes * 60); setFocusRunning(false) }}>{minutes} min</button>)}<button className="primary" type="button" onClick={() => { if (!focusRunning && focusSeconds === 0) setFocusSeconds(focusMinutes * 60); setFocusRunning(running => !running) }}>{focusRunning ? 'Pausar' : 'Começar'}</button></div><small>{focusSubject ? `${subjects.find(item => item.id === focusSubject)?.focusMinutes ?? 0} min registrados nesta matéria` : 'Selecione uma matéria para registrar o tempo.'}</small></section>}
     {ready && tab === 'Estudos' && <details className="panel study-deadlines" open>
       <summary>Próximos prazos</summary>
       {studyDeadlines.length ? <ul>{studyDeadlines.map(entry => <li key={entry.id}>
@@ -375,8 +425,8 @@ function App() {
         <h3>{weekDayLabel.format(new Date(day))}</h3>
         {list(entries.filter(item => occursOn(item, day)), 'Nenhum compromisso neste dia.')}
       </section>}
-      {tab === 'Semana' && entries.some(item => item.area === 'Semana' && !item.date) && <section className="week-day">
-        <h3>Sem data</h3>{list(entries.filter(item => item.area === 'Semana' && !item.date))}
+      {tab === 'Semana' && entries.some(item => item.area === 'Semana' && item.kind !== 'Hábito' && !item.date) && <section className="week-day">
+        <h3>Sem data</h3>{list(entries.filter(item => item.area === 'Semana' && item.kind !== 'Hábito' && !item.date))}
       </section>}
       {tab === 'Estudos' && <details className="study-subjects" open>
         <summary>Matérias</summary>
@@ -418,6 +468,13 @@ function App() {
           return <div key={label}><span className={`ring ring-${index}`} style={{ backgroundImage: `conic-gradient(var(--ring) ${percent}%, var(--tint) 0)` }} aria-hidden="true" /><strong>{money.format(Number(value))}</strong><small>{label}</small></div>
         })}</div>
         {limit !== undefined && <p>Limite do mês: {money.format(limit)}{spent > limit ? ' · Limite ultrapassado' : ''}</p>}
+        <details className="finance-goals" open><summary>Metas financeiras</summary><div className="toolbar"><span>Objetivos vinculados às suas entradas</span><button type="button" className="text-action" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind: 'Meta financeira' })}>Nova meta</button></div>
+          {financialGoals.length ? <ul>{financialGoals.map(goal => {
+            const saved = entries.filter(item => item.kind === 'Entrada' && item.goalId === goal.id).reduce((sum, item) => sum + (item.amount ?? 0), 0)
+            const progress = goal.amount ? Math.min(100, saved / goal.amount * 100) : 0
+            return <li key={goal.id}><button className="entry" onClick={() => setEditing(goal)}><strong>{goal.title}</strong><small>{money.format(saved)} de {money.format(goal.amount ?? 0)}</small><span className="goal-progress" aria-label={`${Math.round(progress)}% concluída`}><span style={{ width: `${progress}%` }} /></span></button></li>
+          })}</ul> : <p className="empty-state">Crie uma meta para acompanhar cada depósito.</p>}
+        </details>
       </>}
       {tab === 'Finanças' && financeList(entries.filter(item => {
         if (item.area !== tab) return false
@@ -435,6 +492,17 @@ function App() {
       </div>
       <button className="primary study-toggle" type="button" aria-label={studyActionsOpen ? 'Fechar opções' : 'Adicionar em Estudos'}
         aria-expanded={studyActionsOpen} aria-controls="study-create-options" onClick={() => setStudyActionsOpen(open => !open)}>
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg>
+      </button>
+    </div>}
+    {ready && tab === 'Início' && !editing && <div className="quick-actions">
+      <div id="quick-create-options" hidden={!quickActionsOpen}>
+        <button type="button" onClick={() => { setQuickActionsOpen(false); setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Semana', date: today }) }}>Novo compromisso</button>
+        <button type="button" onClick={() => { setQuickActionsOpen(false); setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Semana', kind: 'Hábito', habitDays: [] }) }}>Novo hábito</button>
+        <button type="button" onClick={() => { setQuickActionsOpen(false); setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Estudos', kind: 'Prova', date: today }) }}>Nova prova</button>
+        <button type="button" onClick={() => { setQuickActionsOpen(false); setEditing({ id: crypto.randomUUID(), title: 'Adicionar saldo', detail: '', area: 'Finanças', kind: 'Entrada', date: today }) }}>Movimentação</button>
+      </div>
+      <button className="primary quick-toggle" type="button" aria-label={quickActionsOpen ? 'Fechar adição rápida' : 'Adição rápida'} aria-expanded={quickActionsOpen} aria-controls="quick-create-options" onClick={() => setQuickActionsOpen(open => !open)}>
         <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg>
       </button>
     </div>}
@@ -467,26 +535,28 @@ function App() {
     </div>}
     {editing && <ItemEditor key={editing.id} modal onCancel={() => { setEditing(undefined); setError('') }}>
       <section className={fullEditor ? 'panel commitment-editor' : 'panel'} aria-label="Editar item"><form onSubmit={save}>
-      {editing.area === 'Semana' && <h1 id="item-editor-title">{entries.some(item => item.id === editing.id) ? 'Editar compromisso' : 'Novo compromisso'}</h1>}
+      {editing.area === 'Semana' && <h1 id="item-editor-title">{editing.kind === 'Hábito' ? entries.some(item => item.id === editing.id) ? 'Editar hábito' : 'Novo hábito' : entries.some(item => item.id === editing.id) ? 'Editar compromisso' : 'Novo compromisso'}</h1>}
       {editing.area === 'Estudos' && <h1 id="item-editor-title">{entries.some(item => item.id === editing.id) ? `Editar ${editing.kind === 'Tema' ? 'conteúdo' : editing.kind?.toLowerCase() ?? 'item'}` : editing.kind === 'Tema' ? 'Novo conteúdo' : `Nova ${editing.kind?.toLowerCase() ?? 'matéria'}`}</h1>}
-      {editing.area === 'Finanças' && <h1 id="item-editor-title">{editing.kind === 'Entrada' ? 'Adicionar saldo' : entries.some(item => item.id === editing.id) ? 'Editar lançamento' : editing.kind === 'Conta fixa' ? 'Nova conta fixa' : editing.kind === 'Parcela' ? 'Nova parcela' : editing.kind === 'Limite' ? 'Limite mensal' : 'Novo gasto'}</h1>}
+      {editing.area === 'Finanças' && <h1 id="item-editor-title">{editing.kind === 'Entrada' ? 'Adicionar saldo' : editing.kind === 'Meta financeira' ? entries.some(item => item.id === editing.id) ? 'Editar meta' : 'Nova meta financeira' : entries.some(item => item.id === editing.id) ? 'Editar lançamento' : editing.kind === 'Conta fixa' ? 'Nova conta fixa' : editing.kind === 'Parcela' ? 'Nova parcela' : editing.kind === 'Limite' ? 'Limite mensal' : 'Novo gasto'}</h1>}
       {error && <p role="alert">{error}</p>}
-      {(editing.area !== 'Finanças' || editing.kind !== 'Entrada') && <label>{editing.kind === 'Matéria' ? 'Nome da matéria' : editing.kind === 'Tema' ? 'Nome do conteúdo' : editing.kind === 'Conta' ? 'Nome da conta' : 'Título'}<input autoFocus required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>}
+      {(editing.area !== 'Finanças' || editing.kind !== 'Entrada') && <label>{editing.kind === 'Matéria' ? 'Nome da matéria' : editing.kind === 'Tema' ? 'Nome do conteúdo' : editing.kind === 'Conta' ? 'Nome da conta' : editing.kind === 'Meta financeira' ? 'Nome da meta' : 'Título'}<input autoFocus required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>}
       {editing.area === 'Estudos' && editing.kind !== 'Matéria' && <SubjectPicker items={subjects} value={editing.parent}
         onChange={parent => setEditing({ ...editing, parent, contentId: parent === editing.parent ? editing.contentId : undefined })} />}
       {editing.parent && (editing.kind === 'Prova' || editing.kind === 'Revisão') && <SubjectPicker label="Conteúdo"
         items={entries.filter(item => item.kind === 'Tema' && item.parent === editing.parent)}
         value={editing.contentId} onChange={contentId => setEditing({ ...editing, contentId })} />}
+      {editing.kind === 'Tema' && <label className="check"><input type="checkbox" checked={!!editing.smartReview} onChange={event => setEditing({ ...editing, smartReview: event.target.checked })} /> Programar revisões em 1, 3, 7 e 14 dias</label>}
       {editing.area === 'Finanças' && ['Entrada', 'Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && <label>Onde<select required value={editing.parent ?? ''} onChange={event => setEditing({ ...editing, parent: event.target.value || undefined })}>
         <option value="">Selecionar</option>{accounts.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
       </select></label>}
+      {editing.kind === 'Entrada' && <SubjectPicker label="Meta" items={financialGoals} value={editing.goalId} onChange={goalId => setEditing({ ...editing, goalId })} />}
       {editing.area === 'Finanças' && ['Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && <label>Categoria<input value={editing.category ?? ''} onChange={event => setEditing({ ...editing, category: event.target.value })} /></label>}
       {editing.kind === 'Parcela' && <label>Número de parcelas<input required type="number" min="2" step="1" value={editing.installments ?? ''} onChange={event => setEditing({ ...editing, installments: event.target.valueAsNumber || undefined })} /></label>}
       {editing.area !== 'Semana' && editing.area !== 'Finanças' && <label>{editing.area === 'Estudos' ? 'Descrição (opcional)' : 'Detalhes'}<input value={editing.detail} onChange={event => setEditing({ ...editing, detail: event.target.value })} /></label>}
       {editing.kind === 'Matéria' && <SubjectWeekday value={editing.weekday} onChange={weekday => setEditing({ ...editing, weekday })} />}
       {(fullEditor || editing.kind === 'Prova' || editing.kind === 'Revisão') && <EditorDate value={editing.date} onChange={date => setEditing({ ...editing, date })} />}
-      {editing.area === 'Finanças' && editing.kind !== 'Conta' && <EditorDate compact value={editing.date} onChange={date => setEditing({ ...editing, date })} />}
-      {(editing.area === 'Semana' || editing.kind === 'Matéria') &&
+      {editing.area === 'Finanças' && editing.kind !== 'Conta' && editing.kind !== 'Meta financeira' && <EditorDate compact value={editing.date} onChange={date => setEditing({ ...editing, date })} />}
+      {((editing.area === 'Semana' && editing.kind !== 'Hábito') || editing.kind === 'Matéria') &&
         <label>Horário<input type="text" inputMode="numeric" placeholder="HH:MM"
           pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Digite um horário de 00:00 a 23:59"
           value={editing.startTime ?? ''} onChange={event => {
@@ -495,8 +565,8 @@ function App() {
             setEditing({ ...editing, startTime, endTime: undefined })
           }} /></label>
       }
-      {editing.area === 'Semana' && <label className="check"><input type="checkbox" checked={!!editing.weekly} onChange={event => setEditing({ ...editing, weekly: event.target.checked })} /> Repetir toda semana</label>}
-      {editing.area === 'Finanças' && <label>{editing.kind === 'Parcela' ? 'Valor de cada parcela' : 'Valor'} (ARS)<input required type="number" min={editing.kind === 'Conta' ? undefined : '0.01'} step="0.01" value={editing.amount ?? ''} onChange={event => setEditing({ ...editing, amount: event.target.value ? Number(event.target.value) : undefined })} /></label>}
+      {editing.area === 'Semana' && editing.kind !== 'Hábito' && <label className="check"><input type="checkbox" checked={!!editing.weekly} onChange={event => setEditing({ ...editing, weekly: event.target.checked })} /> Repetir toda semana</label>}
+      {editing.area === 'Finanças' && <label>{editing.kind === 'Meta financeira' ? 'Valor alvo' : editing.kind === 'Parcela' ? 'Valor de cada parcela' : 'Valor'} (ARS)<input required type="number" min={editing.kind === 'Conta' ? undefined : '0.01'} step="0.01" value={editing.amount ?? ''} onChange={event => setEditing({ ...editing, amount: event.target.value ? Number(event.target.value) : undefined })} /></label>}
       {editing.kind === 'Revisão' && <label className="check"><input type="checkbox" checked={!!editing.done} onChange={event => setEditing({ ...editing, done: event.target.checked })} /> Revisão concluída</label>}
       <div className="toolbar">
         <button type="button" onClick={() => { setEditing(undefined); setError('') }}>Cancelar</button>
@@ -535,7 +605,7 @@ function ItemEditor({ modal, onCancel, children }: { modal: boolean; onCancel: (
     onCancel={event => { event.preventDefault(); onCancel() }}>{children}</dialog>
 }
 
-function SubjectPicker({ label = 'Matéria', items, value, onChange }: { label?: 'Matéria' | 'Conteúdo'; items: Entry[]; value?: string; onChange: (id?: string) => void }) {
+function SubjectPicker({ label = 'Matéria', items, value, onChange }: { label?: string; items: Entry[]; value?: string; onChange: (id?: string) => void }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const prompt = label === 'Matéria' ? 'Selecionar matéria' : 'Selecionar conteúdo'
   const choose = (id?: string) => { onChange(id); dialog.current?.close() }
@@ -547,7 +617,7 @@ function SubjectPicker({ label = 'Matéria', items, value, onChange }: { label?:
     <dialog ref={dialog} className="date-dialog weekday-dialog subject-picker" aria-label={prompt}>
       <h2>{prompt}</h2>
       <div>{items.map(item => <button key={item.id} type="button" aria-pressed={item.id === value} onClick={() => choose(item.id)}>{item.title}</button>)}
-        <button type="button" aria-pressed={!value} onClick={() => choose()}>{label === 'Matéria' ? 'Sem matéria vinculada' : 'Sem conteúdo vinculado'}</button>
+        <button type="button" aria-pressed={!value} onClick={() => choose()}>{`Sem ${label.toLowerCase()} vinculada`}</button>
       </div>
       <button type="button" onClick={() => dialog.current?.close()}>Cancelar</button>
     </dialog>
@@ -623,6 +693,20 @@ function paymentId(entryId: string, month: string) {
   return `payment:${entryId}:${month}`
 }
 
+function habitStreak(days: string[] = []) {
+  let streak = 0
+  let cursor = today
+  while (days.includes(cursor)) {
+    streak += 1
+    cursor = shiftDay(cursor, -1)
+  }
+  return streak
+}
+
+function formatFocusTime(seconds: number) {
+  return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
+}
+
 function sameEntries(a: Entry[], b: Entry[]) {
   return a.length === b.length && a.every(entry => b.some(other => sameEntry(entry, other)))
 }
@@ -655,8 +739,9 @@ function isReserved(entry: Entry, month: string) {
 }
 
 function sameEntry(a: Entry, b: Entry) {
-  return (Object.keys(a) as (keyof Entry)[]).every(key => a[key] === b[key])
-    && (Object.keys(b) as (keyof Entry)[]).every(key => a[key] === b[key])
+  const equal = (left: unknown, right: unknown) => Array.isArray(left) || Array.isArray(right) ? JSON.stringify(left) === JSON.stringify(right) : left === right
+  return (Object.keys(a) as (keyof Entry)[]).every(key => equal(a[key], b[key]))
+    && (Object.keys(b) as (keyof Entry)[]).every(key => equal(a[key], b[key]))
 }
 
 function changes(a: Entry[], b: Entry[]) {
