@@ -185,6 +185,14 @@ function App() {
     }).then(refresh).then(() => setReady(true)).catch(() => setError('Não foi possível abrir o armazenamento deste aparelho.'))
   }, [])
 
+  async function createInitialWallet() {
+    const wallet = { id: crypto.randomUUID(), title: 'Carteira', detail: 'Carteira inicial', area: 'Finanças' as const, kind: 'Conta' as const, amount: 0 }
+    await db.entries.put(wallet)
+    await refresh()
+    setEditing(current => current ? { ...current, parent: wallet.id } : current)
+    void synchronize()
+  }
+
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!editing || (editing.kind !== 'Entrada' && !editing.title.trim())) return
@@ -517,9 +525,9 @@ function App() {
         items={entries.filter(item => item.kind === 'Tema' && item.parent === editing.parent)}
         value={editing.contentId} onChange={contentId => setEditing({ ...editing, contentId })} />}
       {editing.kind === 'Tema' && <label className="check"><input type="checkbox" checked={!!editing.smartReview} onChange={event => setEditing({ ...editing, smartReview: event.target.checked })} /> Programar revisões em 1, 3, 7 e 14 dias</label>}
-      {editing.area === 'Finanças' && ['Entrada', 'Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && <label>Onde<select required value={editing.parent ?? ''} onChange={event => setEditing({ ...editing, parent: event.target.value || undefined })}>
+      {editing.area === 'Finanças' && ['Entrada', 'Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && (accounts.length ? <label>Onde<select required value={editing.parent ?? ''} onChange={event => setEditing({ ...editing, parent: event.target.value || undefined })}>
         <option value="">Selecionar</option>{accounts.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
-      </select></label>}
+      </select></label> : <div className="no-account"><strong>Onde</strong><p>Você ainda não tem uma carteira.</p><button type="button" onClick={() => void createInitialWallet()}>Criar carteira</button></div>)}
       {editing.kind === 'Entrada' && <SubjectPicker label="Meta" items={financialGoals} value={editing.goalId} onChange={goalId => setEditing({ ...editing, goalId })} />}
       {editing.area === 'Finanças' && ['Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && <label>Categoria<input value={editing.category ?? ''} onChange={event => setEditing({ ...editing, category: event.target.value })} /></label>}
       {editing.kind === 'Parcela' && <label>Número de parcelas<input required type="number" min="2" step="1" value={editing.installments ?? ''} onChange={event => setEditing({ ...editing, installments: event.target.valueAsNumber || undefined })} /></label>}

@@ -236,4 +236,7 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .finance-goals li { padding-block: .3rem; }
 .goal-progress { display: block; height: .38rem; margin-top: .35rem; overflow: hidden; border-radius: 1rem; background: var(--tint); }
 .goal-progress > span { display: block; height: 100%; border-radius: inherit; background: var(--teal); }
+.no-account { display: grid; gap: .35rem; }
+.no-account p { margin: 0; color: var(--muted); font-size: .9rem; }
+.no-account button { width: fit-content; }
 @media (max-width: 600px) { .focus-controls { grid-template-columns: repeat(3, minmax(0, 1fr)); } .focus-controls select, .focus-controls .primary { grid-column: 1 / -1; } }
