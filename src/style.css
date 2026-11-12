@@ -52,6 +52,14 @@ select { font: inherit; }
 .finance-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; text-align: center; padding: 1rem 0; }
 .finance-summary > div { min-width: 0; }
 .finance-summary strong { display: block; font-size: clamp(.72rem, 3.1vw, .95rem); letter-spacing: -.03em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.finance-wallets { margin-top: 1rem; }
+.finance-wallets h3 { margin: 0; font-size: 1rem; }
+.finance-wallets > div:not(.toolbar) { display: grid; gap: .45rem; }
+.wallet-card { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; text-align: left; }
+.wallet-card > span { display: grid; min-width: 0; gap: .15rem; }
+.wallet-card > span:last-child { text-align: right; }
+.wallet-card strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wallet-card > span:last-child strong { font-variant-numeric: tabular-nums; }
 .ring { display: block; width: 3.5rem; aspect-ratio: 1; border-radius: 50%; margin: 0 auto .5rem; --ring: var(--forest); }
 .ring-1 { --ring: var(--lime); }
 .ring-2 { --ring: var(--teal); }

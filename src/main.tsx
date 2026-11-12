@@ -302,6 +302,11 @@ function App() {
     </li>)}</ul> : <p className="empty-state">Nenhum lançamento neste mês.</p>
   }
 
+  function walletBalance(account: Entry) {
+    const activity = entries.filter(item => item.parent === account.id).reduce((sum, item) => sum + (item.kind === 'Entrada' ? item.amount ?? 0 : item.kind === 'Gasto' ? -(item.amount ?? 0) : 0), 0)
+    return (account.amount ?? 0) + activity
+  }
+
   function navigate(area: typeof tab) {
     if (area === 'Estudos' && tab !== 'Estudos') {
       setDeadlineMessage(previous => {
@@ -379,6 +384,7 @@ function App() {
       {tab !== 'Estudos' && <>
       <div className="toolbar"><h2>{tab === 'Semana' ? 'Calendário' : 'Lançamentos em pesos argentinos'}</h2>
         {tab === 'Semana' && <button hidden={!!editing} className="primary calendar-add" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: tab, date: day })}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg> Novo compromisso</button>}
+        {tab === 'Finanças' && <button type="button" className="text-action" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind: 'Conta', amount: 0 })}>Nova carteira</button>}
       </div>
       </>}
       {tab === 'Semana' && <>
@@ -448,6 +454,7 @@ function App() {
           return <div key={label}><span className={`ring ring-${index}`} style={{ backgroundImage: `conic-gradient(var(--ring) ${percent}%, var(--tint) 0)` }} aria-hidden="true" /><strong>{money.format(Number(value))}</strong><small>{label}</small></div>
         })}</div>
         {limit !== undefined && <p>Limite do mês: {money.format(limit)}{spent > limit ? ' · Limite ultrapassado' : ''}</p>}
+        <section className="finance-wallets" aria-label="Carteiras"><div className="toolbar"><h3>Carteiras</h3><button type="button" className="text-action" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind: 'Conta', amount: 0 })}>Adicionar</button></div>{accounts.length ? <div>{accounts.map(account => <button className="wallet-card" type="button" key={account.id} onClick={() => setEditing(account)}><span><strong>{account.title}</strong><small>{entries.filter(item => item.parent === account.id).length} lançamentos vinculados</small></span><span><small>Saldo disponível</small><strong>{money.format(walletBalance(account))}</strong></span></button>)}</div> : <p className="empty-state">Crie sua primeira carteira para separar os saldos.</p>}</section>
         <details className="finance-goals" open><summary>Metas financeiras</summary><div className="toolbar"><span>Objetivos vinculados às suas entradas</span><button type="button" className="text-action" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind: 'Meta financeira' })}>Nova meta</button></div>
           {financialGoals.length ? <ul>{financialGoals.map(goal => {
             const saved = entries.filter(item => item.kind === 'Entrada' && item.goalId === goal.id).reduce((sum, item) => sum + (item.amount ?? 0), 0)
@@ -458,7 +465,7 @@ function App() {
       </>}
       {tab === 'Finanças' && financeList(entries.filter(item => {
         if (item.area !== tab) return false
-        return accounts.includes(item) || (item.kind === 'Entrada' && item.date?.startsWith(month)) || (expenses.includes(item) && (!item.paymentFor || !planned.some(plan => plan.id === item.paymentFor))) || planned.includes(item) || (item.kind === 'Limite' && item.date?.startsWith(month))
+        return (item.kind === 'Entrada' && item.date?.startsWith(month)) || (expenses.includes(item) && (!item.paymentFor || !planned.some(plan => plan.id === item.paymentFor))) || planned.includes(item) || (item.kind === 'Limite' && item.date?.startsWith(month))
       }))}
     </section>}
     {ready && tab === 'Estudos' && !editing && <div className="study-actions">
@@ -545,7 +552,7 @@ function App() {
           }} /></label>
       }
       {editing.area === 'Semana' && editing.kind !== 'Hábito' && <label className="check"><input type="checkbox" checked={!!editing.weekly} onChange={event => setEditing({ ...editing, weekly: event.target.checked })} /> Repetir toda semana</label>}
-      {editing.area === 'Finanças' && <label>{editing.kind === 'Meta financeira' ? 'Valor alvo' : editing.kind === 'Parcela' ? 'Valor de cada parcela' : 'Valor'} (ARS)<input required type="number" min={editing.kind === 'Conta' ? undefined : '0.01'} step="0.01" value={editing.amount ?? ''} onChange={event => setEditing({ ...editing, amount: event.target.value ? Number(event.target.value) : undefined })} /></label>}
+      {editing.area === 'Finanças' && <label>{editing.kind === 'Conta' ? 'Saldo inicial' : editing.kind === 'Meta financeira' ? 'Valor alvo' : editing.kind === 'Parcela' ? 'Valor de cada parcela' : 'Valor'} (ARS)<input required type="number" min={editing.kind === 'Conta' ? undefined : '0.01'} step="0.01" value={editing.amount ?? ''} onChange={event => setEditing({ ...editing, amount: event.target.value ? Number(event.target.value) : undefined })} /></label>}
       {editing.kind === 'Revisão' && <label className="check"><input type="checkbox" checked={!!editing.done} onChange={event => setEditing({ ...editing, done: event.target.checked })} /> Revisão concluída</label>}
       <div className="toolbar">
         <button type="button" onClick={() => { setEditing(undefined); setError('') }}>Cancelar</button>
