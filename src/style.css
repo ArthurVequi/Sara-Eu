@@ -55,11 +55,15 @@ select { font: inherit; }
 .finance-wallets { margin-top: 1rem; }
 .finance-wallets h3 { margin: 0; font-size: 1rem; }
 .finance-wallets > div:not(.toolbar) { display: grid; gap: .45rem; }
-.wallet-card { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; text-align: left; }
-.wallet-card > span { display: grid; min-width: 0; gap: .15rem; }
-.wallet-card > span:last-child { text-align: right; }
+.wallet-card { display: flex; align-items: center; justify-content: space-between; min-height: 8.25rem; gap: .75rem; width: 100%; padding: 1rem; border: 0; color: var(--white); text-align: left; box-shadow: none; }
+.wallet-card > span { display: grid; min-width: 0; gap: .25rem; }
+.wallet-card-info { align-self: stretch; justify-content: space-between; }
+.wallet-card-title { display: inline-flex; align-items: center; gap: .55rem; }
+.wallet-icon { display: grid; width: 2.2rem; height: 2.2rem; place-items: center; border-radius: .75rem; background: #ffffff26; }
+.wallet-card-balance { max-width: 62%; text-align: right; }
+.wallet-card small { color: #ffffffd9; }
 .wallet-card strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wallet-card > span:last-child strong { font-variant-numeric: tabular-nums; }
+.wallet-card-balance strong { font-size: clamp(.9rem, 4.1vw, 1.2rem); font-variant-numeric: tabular-nums; letter-spacing: -.035em; }
 .ring { display: block; width: 3.5rem; aspect-ratio: 1; border-radius: 50%; margin: 0 auto .5rem; --ring: var(--forest); }
 .ring-1 { --ring: var(--lime); }
 .ring-2 { --ring: var(--teal); }
