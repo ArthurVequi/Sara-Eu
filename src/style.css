@@ -83,13 +83,6 @@ main { max-width: 60rem; padding-inline: clamp(1rem, 4vw, 2rem); }
 .brand-mark { display: grid; place-items: center; width: 2rem; height: 2rem; flex: none; }
 .brand-mark img { display: block; width: 100%; height: 100%; }
 .badge { background: var(--tint); color: var(--muted); }
-.notifications { margin-bottom: .75rem; }
-.notifications summary { width: fit-content; padding: .65rem 0; color: var(--forest); cursor: pointer; }
-.notifications .toolbar { justify-content: flex-start; padding-bottom: .5rem; }
-.notification-list { margin-top: 0; }
-.notification-list li { padding: .45rem 0; font-size: .9rem; }
-.notification-settings { display: flex; flex-wrap: wrap; gap: .7rem 1rem; margin: .65rem 0; }
-.notification-settings .check { font-size: .85rem; }
 .hero {
   background: var(--forest);
   border: 1px solid var(--forest);
@@ -100,21 +93,18 @@ main { max-width: 60rem; padding-inline: clamp(1rem, 4vw, 2rem); }
 .hero .hero-date { margin: 0 0 .6rem; text-transform: capitalize; color: var(--white); letter-spacing: 0; font-size: .9rem; }
 .panel { padding: clamp(.9rem, 3vw, 1.35rem); border-radius: 1.25rem; box-shadow: 0 4px 14px #112c0f0d; }
 .dashboard {
-  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
-  grid-template-areas: "today habits" "exams reviews" "finance finance";
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "today" "studies" "finance";
   align-items: stretch;
 }
 .dashboard .panel { min-width: 0; margin: 0; }
 .dashboard-today { grid-area: today; border-top: 3px solid var(--lime); }
-.dashboard-habits { grid-area: habits; }
-.dashboard-exams { grid-area: exams; }
-.dashboard-reviews { grid-area: reviews; }
+.dashboard-study-summary { grid-area: studies; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
 .dashboard-finance { grid-area: finance; }
-.dashboard-exams h2, .dashboard-reviews h2 { display: flex; align-items: center; gap: .55rem; }
-.dashboard-exams h2::before, .dashboard-reviews h2::before {
-  content: ""; width: .55rem; height: .55rem; border-radius: 50%; background: var(--forest);
-}
-.dashboard-reviews h2::before { background: var(--teal); }
+.study-summary-card { display: grid; min-width: 0; gap: .22rem; text-align: left; }
+.study-summary-card svg { color: var(--forest); }
+.study-summary-card strong { font-size: 1.45rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.study-summary-card span { overflow: hidden; color: var(--muted); font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
 .empty-state { color: var(--muted); font-size: .92rem; line-height: 1.5; margin: .6rem 0 0; }
 .dashboard-today .empty-state { padding: .85rem; border-radius: .7rem; background: var(--tint); }
 .dashboard-money { margin: .6rem 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
@@ -130,7 +120,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   main { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
   .dashboard {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "today" "habits" "exams" "reviews" "finance";
+    grid-template-areas: "today" "studies" "finance";
   }
   .app-nav {
     position: fixed;

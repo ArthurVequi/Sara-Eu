@@ -1,7 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { cloud, enableMorningPush } from './cloud'
+import { cloud } from './cloud'
 import './style.css'
 import { SplashScreen } from './SplashScreen'
 
@@ -83,19 +83,14 @@ function App() {
   const [deadlineMessage, setDeadlineMessage] = useState(-1)
   const [theme, setTheme] = useState('')
   const [day, setDay] = useState(linkedDay && /^\d{4}-\d{2}-\d{2}$/.test(linkedDay) ? linkedDay : today)
-  const [pushMessage, setPushMessage] = useState('')
   const [month, setMonth] = useState(today.slice(0, 7))
   const [quickActionsOpen, setQuickActionsOpen] = useState(false)
   const [focusMinutes, setFocusMinutes] = useState(25)
   const [focusSeconds, setFocusSeconds] = useState(25 * 60)
   const [focusRunning, setFocusRunning] = useState(false)
   const [focusSubject, setFocusSubject] = useState('')
-  const [notificationSettings, setNotificationSettings] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('organiza-notifications') ?? '{"agenda":true,"estudos":true,"financas":true}') as Record<string, boolean> } catch { return { agenda: true, estudos: true, financas: true } }
-  })
   const accounts = entries.filter(entry => entry.kind === 'Conta')
   const subjects = entries.filter(entry => entry.kind === 'Matéria')
-  const habits = entries.filter(entry => entry.kind === 'Hábito')
   const financialGoals = entries.filter(entry => entry.kind === 'Meta financeira')
   const studyDeadlines = entries
     .filter(entry => (entry.kind === 'Prova' || entry.kind === 'Revisão') && !entry.done && entry.date && entry.date >= today)
@@ -112,11 +107,6 @@ function App() {
   const exams = entries.filter(entry => entry.kind === 'Prova' && entry.date && entry.date >= today)
     .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '')).slice(0, 3)
   const limit = entries.find(entry => entry.kind === 'Limite' && entry.date?.startsWith(month))?.amount
-  const notifications = [
-    ...(notificationSettings.agenda ? entries.filter(item => item.area === 'Semana' && occursOn(item, today) && !item.done).map(item => `Hoje: ${item.title}`) : []),
-    ...(notificationSettings.estudos ? studyDeadlines.slice(0, 2).map(item => `${item.kind}: ${item.title}`) : []),
-    ...(notificationSettings.financas ? planned.filter(item => !entries.some(payment => payment.id === paymentId(item.id, month))).slice(0, 2).map(item => `A vencer: ${item.title}`) : []),
-  ].slice(0, 5)
 
   async function synchronize(choice?: 'local' | 'remote') {
     if (!cloud || !navigator.onLine) return
@@ -170,7 +160,6 @@ function App() {
     return () => { window.removeEventListener('online', sync); window.clearInterval(timer) }
   }, [ready])
 
-  useEffect(() => { localStorage.setItem('organiza-notifications', JSON.stringify(notificationSettings)) }, [notificationSettings])
   useEffect(() => {
     if (!focusRunning) return
     const timer = window.setInterval(() => setFocusSeconds(seconds => {
@@ -229,13 +218,6 @@ function App() {
     }
   }
 
-  async function toggleHabit(entry: Entry) {
-    const days = entry.habitDays ?? []
-    const habitDays = days.includes(today) ? days.filter(day => day !== today) : [...days, today]
-    await db.entries.update(entry.id, { habitDays })
-    await refresh()
-    void synchronize()
-  }
 
   async function togglePayment(entry: Entry) {
     const id = paymentId(entry.id, month)
@@ -332,13 +314,6 @@ function App() {
   const fullEditor = editing?.area === 'Semana' && editing.kind !== 'Hábito'
   return <main>
     <header className="app-header"><span className="brand"><span className="brand-mark" aria-hidden="true"><img src="/organiza-ai.svg" alt="" width="32" height="32" /></span> Organiza Aí</span><span className="badge" role="status">{cloud ? message || 'Espaço compartilhado' : 'Modo local · demonstração'}</span></header>
-    <details className="notifications"><summary>Notificações{notifications.length ? ` · ${notifications.length}` : ''}</summary>
-      {notifications.length ? <ul className="notification-list">{notifications.map((notice, index) => <li key={`${notice}-${index}`}>{notice}</li>)}</ul> : <p className="empty-state">Tudo tranquilo por enquanto.</p>}
-      <div className="notification-settings">
-        {[['agenda', 'Agenda'], ['estudos', 'Estudos'], ['financas', 'Finanças']].map(([key, label]) => <label className="check" key={key}><input type="checkbox" checked={!!notificationSettings[key]} onChange={event => setNotificationSettings(current => ({ ...current, [key]: event.target.checked }))} /> {label}</label>)}
-      </div>
-      {cloud && <div className="toolbar"><button onClick={() => void enableMorningPush().then(() => setPushMessage('Lembrete matinal ativado neste aparelho.')).catch(error => setPushMessage(error.message))}>Ativar lembrete matinal</button><span role="status">{pushMessage}</span></div>}
-    </details>
     {conflict && <section className="panel">
       <h2>Alterações em conflito</h2>
       <p>Compare os itens que serão substituídos antes de escolher.</p>
@@ -367,11 +342,7 @@ function App() {
     {!ready && !error && <p role="status">Carregando…</p>}
     {ready && tab === 'Início' && <div className="grid dashboard">
       <section className="panel dashboard-today"><div className="toolbar"><h2>Hoje</h2><button className="text-action" onClick={() => { setDay(today); navigate('Semana') }}>Ver agenda</button></div>{list(entries.filter(item => occursOn(item, today)), 'Nenhum compromisso para hoje.')}</section>
-      <section className="panel dashboard-habits"><div className="toolbar"><h2>Rotinas de hoje</h2><button className="text-action" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Semana', kind: 'Hábito', habitDays: [] })}>Adicionar</button></div>
-        {habits.length ? <ul>{habits.map(habit => <li key={habit.id}><input type="checkbox" checked={habit.habitDays?.includes(today) ?? false} aria-label={`Concluir ${habit.title}`} onChange={() => void toggleHabit(habit)} /><button className="entry" onClick={() => setEditing(habit)}><strong>{habit.title}</strong><small>{habitStreak(habit.habitDays)} dias seguidos · {(habit.habitDays ?? []).length} conclusões</small></button></li>)}</ul> : <p className="empty-state">Uma rotina pequena já conta como começo.</p>}
-      </section>
-      <section className="panel dashboard-exams"><h2>Próximas provas</h2>{list(exams, 'Nenhuma prova marcada.')}</section>
-      <section className="panel dashboard-reviews"><h2>Revisões pendentes</h2>{list(entries.filter(item => item.kind === 'Revisão' && !item.done && item.date && item.date <= today), 'Nenhuma revisão pendente.')}</section>
+      <section className="dashboard-study-summary" aria-label="Resumo de estudos"><button className="panel study-summary-card" onClick={() => navigate('Estudos')}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 10 9-5 9 5-9 5zM7 12v5c0 1.5 2.2 3 5 3s5-1.5 5-3v-5" /></svg><small>Próxima prova</small><strong>{exams[0] ? `${Math.max(0, Math.ceil((Date.parse(exams[0].date!) - Date.parse(today)) / 86_400_000))} dias` : 'Livre'}</strong><span>{exams[0]?.title ?? 'Nenhuma prova marcada'}</span></button><button className="panel study-summary-card" onClick={() => navigate('Estudos')}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg><small>Revisões pendentes</small><strong>{entries.filter(item => item.kind === 'Revisão' && !item.done && item.date && item.date <= today).length}</strong><span>Para concluir</span></button></section>
       <section className="panel dashboard-finance"><div className="toolbar"><h2>Resumo financeiro</h2><button className="text-action" onClick={() => { setMonth(today.slice(0, 7)); navigate('Finanças') }}>Ver finanças</button></div><dl className="dashboard-money">
         <div><dt>Disponível</dt><dd>{money.format(current.available)}</dd></div>
         <div><dt>Reservado</dt><dd>{money.format(current.reserved)}</dd></div>
@@ -498,7 +469,6 @@ function App() {
     {ready && tab === 'Início' && !editing && <div className="quick-actions">
       <div id="quick-create-options" hidden={!quickActionsOpen}>
         <button type="button" onClick={() => { setQuickActionsOpen(false); setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Semana', date: today }) }}>Novo compromisso</button>
-        <button type="button" onClick={() => { setQuickActionsOpen(false); setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Semana', kind: 'Hábito', habitDays: [] }) }}>Novo hábito</button>
         <button type="button" onClick={() => { setQuickActionsOpen(false); setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Estudos', kind: 'Prova', date: today }) }}>Nova prova</button>
         <button type="button" onClick={() => { setQuickActionsOpen(false); setEditing({ id: crypto.randomUUID(), title: 'Adicionar saldo', detail: '', area: 'Finanças', kind: 'Entrada', date: today }) }}>Movimentação</button>
       </div>
