@@ -452,7 +452,7 @@ function App() {
           aria-expanded={financeActionGroup === group} aria-controls="finance-type-options"
           onClick={() => setFinanceActionGroup(current => current === group ? undefined : group)}>
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d={group === 'Entrada' ? 'M12 17V3m-6 8l6 6l6-6m1 10H5' : 'm18 9-6-6-6 6m6-6v14m-7 4h14'} />
+            {group === 'Entrada' ? <><path fill="currentColor" d="M17 8V5a1 1 0 0 0-1-1H6a2 2 0 0 0 0 4h12a1 1 0 0 1 1 1v3m0 4v3a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V6" /><path fill="currentColor" d="M20 12v4h-4a2 2 0 0 1 0-4z" /></> : <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-3-2l-2 2l-2-2l-2 2l-2-2zM9 7h6m-6 4h6m-2 4h2" />}
           </svg>
           {group}
         </button>)}
