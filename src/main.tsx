@@ -445,7 +445,7 @@ function App() {
           setFinanceActionGroup(undefined)
           setEditing({ id: crypto.randomUUID(), title: kind === 'Entrada' ? 'Adicionar saldo' : '', detail: '', area: 'Finanças', kind,
             date: month === today.slice(0, 7) ? today : `${month}-01` })
-        }}>{kind === 'Entrada' ? 'Adicionar saldo' : kind === 'Limite' ? 'Limite mensal' : `Novo ${kind.toLowerCase()}`}</button>)}
+        }}>{kind === 'Entrada' ? 'Adicionar saldo' : `Novo ${kind.toLowerCase()}`}</button>)}
       </div>
       <div id="finance-create-options" className="finance-action-groups" hidden={!financeActionsOpen}>
         {(Object.keys(financeActionGroups) as Array<keyof typeof financeActionGroups>).map(group => <button key={group} type="button"
