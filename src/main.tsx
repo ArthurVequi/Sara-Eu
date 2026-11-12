@@ -82,6 +82,7 @@ function App() {
   const [studyActionsOpen, setStudyActionsOpen] = useState(false)
   const [financeActionsOpen, setFinanceActionsOpen] = useState(false)
   const [financeActionGroup, setFinanceActionGroup] = useState<keyof typeof financeActionGroups>()
+  const [selectedWallet, setSelectedWallet] = useState('all')
   const [deadlineMessage, setDeadlineMessage] = useState(-1)
   const [theme, setTheme] = useState('')
   const [day, setDay] = useState(linkedDay && /^\d{4}-\d{2}-\d{2}$/.test(linkedDay) ? linkedDay : today)
@@ -109,6 +110,8 @@ function App() {
   const exams = entries.filter(entry => entry.kind === 'Prova' && entry.date && entry.date >= today)
     .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '')).slice(0, 3)
   const limit = entries.find(entry => entry.kind === 'Limite' && entry.date?.startsWith(month))?.amount
+  const selectedAccount = accounts.find(account => account.id === selectedWallet)
+  const financeView = selectedAccount ? walletFinanceSummary(selectedAccount, month) : { available, reserved, spent }
 
   async function synchronize(choice?: 'local' | 'remote') {
     if (!cloud || !navigator.onLine) return
@@ -260,6 +263,7 @@ function App() {
       }
       if (subject === entry.id) setSubject('')
       if (theme === entry.id) setTheme('')
+      if (selectedWallet === entry.id) setSelectedWallet('all')
       setEditing(undefined)
       setError('')
       await refresh()
@@ -306,6 +310,13 @@ function App() {
   function walletBalance(account: Entry) {
     const activity = entries.filter(item => item.parent === account.id).reduce((sum, item) => sum + (item.kind === 'Entrada' ? item.amount ?? 0 : item.kind === 'Gasto' ? -(item.amount ?? 0) : 0), 0)
     return (account.amount ?? 0) + activity
+  }
+
+  function walletFinanceSummary(account: Entry, selectedMonth: string) {
+    const activity = entries.filter(item => item.parent === account.id && item.date?.startsWith(selectedMonth))
+    const spent = activity.filter(item => item.kind === 'Gasto').reduce((sum, item) => sum + (item.amount ?? 0), 0)
+    const reserved = activity.filter(item => isReserved(item, selectedMonth)).reduce((sum, item) => sum + (item.amount ?? 0), 0)
+    return { available: walletBalance(account), reserved, spent }
   }
 
   function navigate(area: typeof tab) {
@@ -444,29 +455,43 @@ function App() {
       </li>)}</ul> : <p className="empty-state">Nenhuma matéria cadastrada.</p>}
       </details>}
       {tab === 'Finanças' && <>
+        <section className="finance-wallets" aria-label="Carteiras">
+          <div className="toolbar"><h3>Carteiras</h3><button type="button" className="text-action" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind: 'Conta', amount: 0 })}>Adicionar</button></div>
+          <div className="wallet-switcher">
+            {accounts.map((account, index) => <button className="wallet-option" type="button" key={account.id} aria-pressed={selectedWallet === account.id} onClick={() => setSelectedWallet(account.id)}>
+              <span className="wallet-option-mark" style={{ backgroundColor: walletColors[index % walletColors.length] }} aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7V5a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h14a1 1 0 0 1 1 1v2m0 6v2a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V6" /><path d="M16 12h4v4h-4a2 2 0 0 1 0-4Z" /></svg></span>
+              <strong>{account.title}</strong><small>{money.format(walletBalance(account))}</small>
+            </button>)}
+            <button className="wallet-option wallet-option-all" type="button" aria-pressed={selectedWallet === 'all'} onClick={() => setSelectedWallet('all')}>
+              <span className="wallet-option-mark" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11m16-11v11M8 14v3m4-3v3m4-3v3" /></svg></span>
+              <strong>Todos</strong><small>Dados unificados</small>
+            </button>
+          </div>
+        </section>
         <div className="toolbar finance-month-controls" role="group" aria-label="Navegação por mês">
           <button aria-label="Mês anterior" onClick={() => setMonth(shiftMonth(month, -1))}>‹</button>
           <div><strong aria-live="polite">{new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${month}-01T00:00:00Z`))}</strong></div>
           <button aria-label="Próximo mês" onClick={() => setMonth(shiftMonth(month, 1))}>›</button>
         </div>
-        <div className="finance-summary">{[['Disponível', available], ['Reservado', reserved], ['Gasto', spent]].map(([label, value], index) => {
-          const combined = Math.max(available, 0) + reserved + spent
+        <h3 className="finance-view-title">{selectedAccount ? selectedAccount.title : 'Todos'}</h3>
+        <div className="finance-summary">{[['Disponível', financeView.available], ['Reservado', financeView.reserved], ['Gasto', financeView.spent]].map(([label, value], index) => {
+          const combined = Math.max(financeView.available, 0) + financeView.reserved + financeView.spent
           const percent = combined ? Math.max(Number(value), 0) / combined * 100 : 0
           return <div key={label}><span className={`ring ring-${index}`} style={{ backgroundImage: `conic-gradient(var(--ring) ${percent}%, var(--tint) 0)` }} aria-hidden="true" /><strong>{money.format(Number(value))}</strong><small>{label}</small></div>
         })}</div>
-        {limit !== undefined && <p>Limite do mês: {money.format(limit)}{spent > limit ? ' · Limite ultrapassado' : ''}</p>}
-        <section className="finance-wallets" aria-label="Carteiras"><div className="toolbar"><h3>Carteiras</h3><button type="button" className="text-action" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind: 'Conta', amount: 0 })}>Adicionar</button></div>{accounts.length ? <div>{accounts.map((account, index) => <button className="wallet-card" type="button" key={account.id} style={{ backgroundColor: walletColors[index % walletColors.length] }} onClick={() => setEditing(account)}><span className="wallet-card-info"><span className="wallet-card-title"><span className="wallet-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path fill="currentColor" d="M17 8V5a1 1 0 0 0-1-1H6a2 2 0 0 0 0 4h12a1 1 0 0 1 1 1v3m0 4v3a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V6" /><path fill="currentColor" d="M20 12v4h-4a2 2 0 0 1 0-4z" /></svg></span><strong>{account.title}</strong></span><small>{entries.filter(item => item.parent === account.id).length} lançamentos vinculados</small></span><span className="wallet-card-balance"><small>Saldo disponível</small><strong>{money.format(walletBalance(account))}</strong><small>Toque para editar</small></span></button>)}</div> : <p className="empty-state">Crie sua primeira carteira para separar os saldos.</p>}</section>
-        <details className="finance-goals" open><summary>Metas financeiras</summary><div className="toolbar"><span>Objetivos vinculados às suas entradas</span><button type="button" className="text-action" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind: 'Meta financeira' })}>Nova meta</button></div>
+        {limit !== undefined && <p>Limite do mês: {money.format(limit)}{financeView.spent > limit ? ' · Limite ultrapassado' : ''}</p>}
+        {selectedWallet === 'all' && <details className="finance-goals" open><summary>Metas financeiras</summary><div className="toolbar"><span>Objetivos vinculados às suas entradas</span><button type="button" className="text-action" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind: 'Meta financeira' })}>Nova meta</button></div>
           {financialGoals.length ? <ul>{financialGoals.map(goal => {
             const saved = entries.filter(item => item.kind === 'Entrada' && item.goalId === goal.id).reduce((sum, item) => sum + (item.amount ?? 0), 0)
             const progress = goal.amount ? Math.min(100, saved / goal.amount * 100) : 0
             return <li key={goal.id}><button className="entry" onClick={() => setEditing(goal)}><strong>{goal.title}</strong><small>{money.format(saved)} de {money.format(goal.amount ?? 0)}</small><span className="goal-progress" aria-label={`${Math.round(progress)}% concluída`}><span style={{ width: `${progress}%` }} /></span></button></li>
           })}</ul> : <p className="empty-state">Crie uma meta para acompanhar cada depósito.</p>}
-        </details>
+        </details>}
       </>}
       {tab === 'Finanças' && financeList(entries.filter(item => {
         if (item.area !== tab) return false
-        return (item.kind === 'Entrada' && item.date?.startsWith(month)) || (expenses.includes(item) && (!item.paymentFor || !planned.some(plan => plan.id === item.paymentFor))) || planned.includes(item) || (item.kind === 'Limite' && item.date?.startsWith(month))
+        const included = (item.kind === 'Entrada' && item.date?.startsWith(month)) || (expenses.includes(item) && (!item.paymentFor || !planned.some(plan => plan.id === item.paymentFor))) || planned.includes(item) || (item.kind === 'Limite' && item.date?.startsWith(month))
+        return included && (selectedWallet === 'all' || item.parent === selectedWallet)
       }))}
     </section>}
     {ready && tab === 'Estudos' && !editing && <div className="study-actions">
