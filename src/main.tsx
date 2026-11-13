@@ -91,10 +91,12 @@ function App() {
   const accounts = entries.filter(entry => entry.kind === 'Conta')
   const subjects = entries.filter(entry => entry.kind === 'Matéria')
   const financialGoals = entries.filter(entry => entry.kind === 'Meta financeira')
-  const studyDeadlines = entries
+  const studyPlan = entries
     .filter(entry => (entry.kind === 'Prova' || entry.kind === 'Revisão') && entry.date && entry.date >= today)
     .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
+  const studyDeadlines = studyPlan
     .slice(0, 4)
+  const pendingReviews = studyPlan.filter(entry => entry.kind === 'Revisão' && !entry.done).length
   const themes = entries.filter(entry => entry.kind === 'Tema' && entry.parent === subject)
   const agendaMonth = day.slice(0, 7)
   const firstDay = agendaMonth + '-01'
@@ -369,7 +371,7 @@ function App() {
     {!ready && !error && <p role="status">Carregando…</p>}
     {ready && tab === 'Início' && <div className="grid dashboard">
       <section className="panel dashboard-today"><div className="toolbar"><h2>Hoje</h2><button className="text-action" onClick={() => { setDay(today); navigate('Semana') }}>Ver agenda</button></div>{list(entries.filter(item => occursOn(item, today)), 'Nenhum compromisso para hoje.')}</section>
-      <section className="dashboard-study-summary" aria-label="Resumo de estudos"><button className="panel study-summary-card" onClick={() => navigate('Estudos')}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 10 9-5 9 5-9 5zM7 12v5c0 1.5 2.2 3 5 3s5-1.5 5-3v-5" /></svg><small>Próxima prova</small><strong>{exams[0] ? `${Math.max(0, Math.ceil((Date.parse(exams[0].date!) - Date.parse(today)) / 86_400_000))} dias` : 'Livre'}</strong><span>{exams[0]?.title ?? 'Nenhuma prova marcada'}</span></button><button className="panel study-summary-card" onClick={() => navigate('Estudos')}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg><small>Revisões pendentes</small><strong>{entries.filter(item => item.kind === 'Revisão' && !item.done && item.date && item.date <= today).length}</strong><span>Para concluir</span></button></section>
+      <section className="dashboard-study-summary" aria-label="Resumo de estudos"><button className="panel study-summary-card" onClick={() => navigate('Estudos')}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 10 9-5 9 5-9 5zM7 12v5c0 1.5 2.2 3 5 3s5-1.5 5-3v-5" /></svg><small>Próxima prova</small><strong>{exams[0] ? `${Math.max(0, Math.ceil((Date.parse(exams[0].date!) - Date.parse(today)) / 86_400_000))} dias` : 'Livre'}</strong><span>{exams[0]?.title ?? 'Nenhuma prova marcada'}</span></button><button className="panel study-summary-card" onClick={() => navigate('Estudos')}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg><small>Revisões pendentes</small><strong>{pendingReviews}</strong><span>Para concluir</span></button></section>
       <section className="panel dashboard-finance"><div className="toolbar"><h2>Resumo financeiro</h2><button className="text-action" onClick={() => { setMonth(today.slice(0, 7)); navigate('Finanças') }}>Ver finanças</button></div><dl className="dashboard-money">
         <div><dt>Disponível</dt><dd aria-label={money.format(current.available)}>{compactMoney.format(current.available)}</dd></div>
         <div><dt>Reservado</dt><dd aria-label={money.format(current.reserved)}>{compactMoney.format(current.reserved)}</dd></div>
