@@ -94,10 +94,12 @@ select { font: inherit; }
 }
 main { --page-gutter: clamp(1rem, 4vw, 2rem); max-width: 60rem; padding-inline: var(--page-gutter); }
 .app-header { margin-bottom: .65rem; }
+.app-header-actions { display: flex; align-items: center; gap: .4rem; }
 .brand { display: inline-flex; align-items: center; gap: .5rem; letter-spacing: -.035em; }
 .brand-mark { display: grid; place-items: center; width: 2rem; height: 2rem; flex: none; }
 .brand-mark img { display: block; width: 100%; height: 100%; }
 .badge { background: var(--tint); color: var(--muted); }
+.settings-button { display: grid; width: 2.5rem; min-height: 2.5rem; padding: 0; flex: none; place-items: center; color: var(--forest); background: var(--white); }
 .hero {
   background: var(--forest);
   border: 1px solid var(--forest);
@@ -287,6 +289,20 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .focus-subject-picker > button span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .focus-controls button { min-height: 44px; }
 .focus-controls .primary { color: var(--white); border-color: var(--forest); background: var(--forest); }
+.settings-panel { display: grid; gap: .8rem; }
+.settings-heading { display: flex; align-items: center; gap: .65rem; }
+.settings-heading h1, .settings-heading p { margin: 0; }
+.settings-heading p { color: var(--muted); font-size: .88rem; }
+.settings-icon { display: grid; width: 2.5rem; height: 2.5rem; flex: none; place-items: center; border-radius: .75rem; color: var(--forest); background: var(--lime); }
+.notification-options { display: grid; gap: .45rem; }
+.notification-option { display: flex; align-items: center; justify-content: space-between; gap: .7rem; padding: .7rem; border: 1px solid var(--border); border-radius: .8rem; background: var(--tint); }
+.notification-option > span { min-width: 0; }
+.notification-option strong { display: block; }
+.notification-option small { margin-top: .08rem; font-size: .78rem; }
+.notification-option input { appearance: none; width: 2.6rem; height: 1.5rem; margin: 0; flex: none; border: 1px solid var(--border); border-radius: 2rem; background: var(--white); cursor: pointer; }
+.notification-option input::after { display: block; width: 1.1rem; height: 1.1rem; margin: .12rem; border-radius: 50%; background: var(--muted); content: ''; transition: transform .16s ease, background .16s ease; }
+.notification-option input:checked { border-color: var(--forest); background: var(--forest); }
+.notification-option input:checked::after { background: var(--lime); transform: translateX(1.05rem); }
 body:has(main.focus-active) { background: var(--forest); }
 main.focus-active { min-height: 100dvh; color: #ffffff; background: var(--forest); --white: #173b18; --tint: #214b22; --border: #477445; --ink: #ffffff; --muted: #d7e6d0; }
 main.focus-active .brand { color: var(--lime); }

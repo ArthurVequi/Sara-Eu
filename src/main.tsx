@@ -8,6 +8,7 @@ import { SplashScreen } from './SplashScreen'
 type Area = 'Semana' | 'Estudos' | 'Finanças'
 type Kind = 'Matéria' | 'Tema' | 'Prova' | 'Revisão' | 'Hábito' | 'Conta' | 'Entrada' | 'Gasto' | 'Conta fixa' | 'Parcela' | 'Limite' | 'Meta financeira'
 type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number; paymentFor?: string; weekday?: number; contentId?: string; habitDays?: string[]; smartReview?: boolean; goalId?: string; piggyMovement?: boolean; focusMinutes?: number }
+type NotificationSettings = { studies: boolean; agenda: boolean; finances: boolean }
 const areas: Area[] = ['Semana', 'Estudos', 'Finanças']
 const navIcons = [
   'M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8 M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
@@ -34,7 +35,7 @@ const expenseCategories = ['Mercado', 'Alimentação', 'Farmácia', 'Lazer', 'Tr
 type Snapshot = { version: number; entries: Entry[] }
 const db = new Dexie(cloud ? 'organiza-ai-shared' : 'organiza-ai') as Dexie & {
   entries: Table<Entry, string>
-  settings: Table<{ id: string; snapshot?: Snapshot }, string>
+  settings: Table<{ id: string; snapshot?: Snapshot; notifications?: NotificationSettings }, string>
 }
 db.version(1).stores({ entries: 'id, area', settings: 'id' })
 const money = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', currencyDisplay: 'code' })
@@ -72,6 +73,8 @@ function App() {
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<Entry>()
   const [message, setMessage] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [notifications, setNotifications] = useState<NotificationSettings>({ studies: true, agenda: true, finances: true })
   const [conflict, setConflict] = useState<Snapshot>()
   const [subject, setSubject] = useState('')
   const [studyActionsOpen, setStudyActionsOpen] = useState(false)
@@ -188,12 +191,28 @@ function App() {
     }).then(refresh).then(() => setReady(true)).catch(() => setError('Não foi possível abrir o armazenamento deste aparelho.'))
   }, [])
 
+  useEffect(() => {
+    void db.settings.get('preferences').then(saved => {
+      if (saved?.notifications) setNotifications(saved.notifications)
+    })
+  }, [])
+
   async function createInitialWallet() {
     const wallet = { id: crypto.randomUUID(), title: 'Carteira', detail: 'Carteira inicial', area: 'Finanças' as const, kind: 'Conta' as const, amount: 0 }
     await db.entries.put(wallet)
     await refresh()
     setEditing(current => current ? { ...current, parent: wallet.id } : current)
     void synchronize()
+  }
+
+  async function updateNotification(key: keyof NotificationSettings) {
+    const next = { ...notifications, [key]: !notifications[key] }
+    setNotifications(next)
+    try {
+      await db.settings.put({ id: 'preferences', notifications: next })
+    } catch {
+      setError('Não foi possível salvar as notificações.')
+    }
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -342,7 +361,7 @@ function App() {
 
   const fullEditor = editing?.area === 'Semana' && editing.kind !== 'Hábito'
   return <main className={focusRunning ? 'focus-active' : undefined}>
-    <header className="app-header"><span className="brand"><span className="brand-mark" aria-hidden="true"><img src="/organiza-ai.svg" alt="" width="32" height="32" /></span> Organiza Aí</span><span className="badge" role="status">{cloud ? message || 'Espaço compartilhado' : 'Modo local · demonstração'}</span></header>
+    <header className="app-header"><span className="brand"><span className="brand-mark" aria-hidden="true"><img src="/organiza-ai.svg" alt="" width="32" height="32" /></span> Organiza Aí</span><div className="app-header-actions"><span className="badge" role="status">{cloud ? message || 'Espaço compartilhado' : 'Modo local · demonstração'}</span><button className="settings-button" type="button" aria-label="Configurações" onClick={() => setSettingsOpen(true)}><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06l-2.12 2.12l-.06-.06a1.7 1.7 0 0 0-1.88-.34a1.7 1.7 0 0 0-1.04 1.56V20h-3v-.09A1.7 1.7 0 0 0 10.66 18.35a1.7 1.7 0 0 0-1.88.34l-.06.06L6.6 16.63l.06-.06A1.7 1.7 0 0 0 7 14.69a1.7 1.7 0 0 0-1.56-1.04h-.09v-3h.09A1.7 1.7 0 0 0 7 9.61a1.7 1.7 0 0 0-.34-1.88L6.6 7.67l2.12-2.12l.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.7 4.39V4.3h3v.09a1.7 1.7 0 0 0 1.04 1.56a1.7 1.7 0 0 0 1.88-.34l.06-.06l2.12 2.12l-.06.06A1.7 1.7 0 0 0 19.4 9.61a1.7 1.7 0 0 0 1.56 1.04h.09v3h-.09A1.7 1.7 0 0 0 19.4 15" /></svg></button></div></header>
     {conflict && <section className="panel">
       <h2>Alterações em conflito</h2>
       <p>Compare os itens que serão substituídos antes de escolher.</p>
@@ -542,6 +561,7 @@ function App() {
       </button>
     </div>}
     {activePiggyBank && <ItemEditor modal onCancel={() => setActivePiggyBank(undefined)}><section className="panel piggy-movement" aria-label="Movimentar cofrinho"><h1 id="item-editor-title">{activePiggyBank.title}</h1><p>Separado: <strong>{money.format(piggyBalance(activePiggyBank.id))}</strong></p><div><button type="button" className="primary" onClick={() => openPiggyMovement(activePiggyBank, 'Entrada')}>Adicionar dinheiro</button><button type="button" onClick={() => openPiggyMovement(activePiggyBank, 'Gasto')}>Retirar dinheiro</button></div><button type="button" onClick={() => setActivePiggyBank(undefined)}>Cancelar</button></section></ItemEditor>}
+    {settingsOpen && <ItemEditor modal onCancel={() => setSettingsOpen(false)}><section className="panel settings-panel" aria-label="Configurações"><div className="settings-heading"><span className="settings-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06l-2.12 2.12l-.06-.06a1.7 1.7 0 0 0-1.88-.34a1.7 1.7 0 0 0-1.04 1.56V20h-3v-.09A1.7 1.7 0 0 0 10.66 18.35a1.7 1.7 0 0 0-1.88.34l-.06.06L6.6 16.63l.06-.06A1.7 1.7 0 0 0 7 14.69a1.7 1.7 0 0 0-1.56-1.04h-.09v-3h.09A1.7 1.7 0 0 0 7 9.61a1.7 1.7 0 0 0-.34-1.88L6.6 7.67l2.12-2.12l.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.7 4.39V4.3h3v.09a1.7 1.7 0 0 0 1.04 1.56a1.7 1.7 0 0 0 1.88-.34l.06-.06l2.12 2.12l-.06.06A1.7 1.7 0 0 0 19.4 9.61a1.7 1.7 0 0 0 1.56 1.04h.09v3h-.09A1.7 1.7 0 0 0 19.4 15" /></svg></span><div><h1 id="item-editor-title">Configurações</h1><p>Notificações</p></div></div><div className="notification-options">{([{ key: 'studies', title: 'Estudos', detail: 'Revisões e provas programadas' }, { key: 'agenda', title: 'Agenda', detail: 'Compromissos próximos e atrasados' }, { key: 'finances', title: 'Finanças', detail: 'Contas e parcelas a vencer' }] as const).map(option => <label className="notification-option" key={option.key}><span><strong>{option.title}</strong><small>{option.detail}</small></span><input type="checkbox" checked={notifications[option.key]} onChange={() => void updateNotification(option.key)} /></label>)}</div><button type="button" onClick={() => setSettingsOpen(false)}>Concluir</button></section></ItemEditor>}
     {editing && <ItemEditor key={editing.id} modal onCancel={() => { setEditing(undefined); setError('') }}>
       <section className={fullEditor ? 'panel commitment-editor' : 'panel'} aria-label="Editar item"><form onSubmit={save}>
       {editing.area === 'Semana' && <h1 id="item-editor-title">{editing.kind === 'Hábito' ? entries.some(item => item.id === editing.id) ? 'Editar hábito' : 'Novo hábito' : entries.some(item => item.id === editing.id) ? 'Editar compromisso' : 'Novo compromisso'}</h1>}
