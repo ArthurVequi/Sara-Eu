@@ -345,7 +345,7 @@ function App() {
   function todayList(items: Entry[]) {
     const ordered = [...items].sort((a, b) => (a.startTime || '24:00').localeCompare(b.startTime || '24:00'))
     return ordered.length ? <ul className="today-list">{ordered.map(entry => <li className={entry.done ? 'is-done' : ''} key={entry.id}>
-      <button type="button" className="today-item" aria-pressed={!!entry.done} onClick={() => void toggle(entry)}>
+      <button type="button" className="today-item" role="checkbox" aria-checked={!!entry.done} onClick={() => void toggle(entry)}>
         <span className="today-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4L19 6" /></svg></span>
         <span><strong>{entry.title}</strong><small>{entry.kind === 'Prova' || entry.kind === 'Revisão' ? [entry.kind, subjects.find(item => item.id === entry.parent)?.title].filter(Boolean).join(' · ') : [entry.startTime, entry.date].filter(Boolean).join(' · ')}</small></span>
       </button>
