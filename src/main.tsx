@@ -396,7 +396,6 @@ function App() {
       {tab !== 'Estudos' && <>
       <div className="toolbar"><h2>{tab === 'Semana' ? 'Calendário' : 'Lançamentos em pesos argentinos'}</h2>
         {tab === 'Semana' && <button hidden={!!editing} className="primary calendar-add" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: tab, date: day })}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg> Novo compromisso</button>}
-        {tab === 'Finanças' && <button type="button" className="text-action" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind: 'Conta', amount: 0 })}>Nova carteira</button>}
       </div>
       </>}
       {tab === 'Semana' && <>
@@ -456,15 +455,19 @@ function App() {
       </details>}
       {tab === 'Finanças' && <>
         <section className="finance-wallets" aria-label="Carteiras">
-          <div className="toolbar"><h3>Carteiras</h3><button type="button" className="text-action" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind: 'Conta', amount: 0 })}>Adicionar</button></div>
+          <h3>Carteiras</h3>
           <div className="wallet-switcher">
-            {accounts.map((account, index) => <button className="wallet-option" type="button" key={account.id} aria-pressed={selectedWallet === account.id} onClick={() => setSelectedWallet(account.id)}>
-              <span className="wallet-option-mark" style={{ backgroundColor: walletColors[index % walletColors.length] }} aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7V5a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h14a1 1 0 0 1 1 1v2m0 6v2a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V6" /><path d="M16 12h4v4h-4a2 2 0 0 1 0-4Z" /></svg></span>
-              <strong>{account.title}</strong><small>{money.format(walletBalance(account))}</small>
-            </button>)}
             <button className="wallet-option wallet-option-all" type="button" aria-pressed={selectedWallet === 'all'} onClick={() => setSelectedWallet('all')}>
               <span className="wallet-option-mark" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11m16-11v11M8 14v3m4-3v3m4-3v3" /></svg></span>
-              <strong>Todos</strong><small>Dados unificados</small>
+              <strong>Todos</strong>
+            </button>
+            {accounts.map((account, index) => <button className="wallet-option" type="button" key={account.id} aria-pressed={selectedWallet === account.id} onClick={() => setSelectedWallet(account.id)}>
+              <span className="wallet-option-mark" style={{ backgroundColor: walletColors[index % walletColors.length] }} aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7V5a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h14a1 1 0 0 1 1 1v2m0 6v2a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V6" /><path d="M16 12h4v4h-4a2 2 0 0 1 0-4Z" /></svg></span>
+              <strong>{account.title}</strong>
+            </button>)}
+            <button className="wallet-option wallet-new" type="button" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind: 'Conta', amount: 0 })}>
+              <span className="wallet-option-mark" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg></span>
+              <strong>Novo</strong>
             </button>
           </div>
         </section>
