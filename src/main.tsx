@@ -353,7 +353,7 @@ function App() {
   }
 
   const fullEditor = editing?.area === 'Semana' && editing.kind !== 'Hábito'
-  return <main>
+  return <main className={focusRunning ? 'focus-active' : undefined}>
     <header className="app-header"><span className="brand"><span className="brand-mark" aria-hidden="true"><img src="/organiza-ai.svg" alt="" width="32" height="32" /></span> Organiza Aí</span><span className="badge" role="status">{cloud ? message || 'Espaço compartilhado' : 'Modo local · demonstração'}</span></header>
     {conflict && <section className="panel">
       <h2>Alterações em conflito</h2>
