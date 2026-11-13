@@ -6,8 +6,8 @@ import './style.css'
 import { SplashScreen } from './SplashScreen'
 
 type Area = 'Semana' | 'Estudos' | 'Finanças'
-type Kind = 'Matéria' | 'Tema' | 'Prova' | 'Revisão' | 'Hábito' | 'Conta' | 'Entrada' | 'Gasto' | 'Conta fixa' | 'Parcela' | 'Limite' | 'Meta financeira'
-type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number; paymentFor?: string; weekday?: number; contentId?: string; habitDays?: string[]; smartReview?: boolean; goalId?: string; piggyMovement?: boolean; focusMinutes?: number }
+type Kind = 'Matéria' | 'Tema' | 'Prova' | 'Revisão' | 'Hábito' | 'Sessão de foco' | 'Conta' | 'Entrada' | 'Gasto' | 'Conta fixa' | 'Parcela' | 'Limite' | 'Meta financeira'
+type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; completedAt?: string; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number; paymentFor?: string; weekday?: number; contentId?: string; habitDays?: string[]; smartReview?: boolean; goalId?: string; piggyMovement?: boolean; focusMinutes?: number }
 type NotificationSettings = { studies: boolean; agenda: boolean; finances: boolean }
 const areas: Area[] = ['Semana', 'Estudos', 'Finanças']
 const navIcons = [
@@ -35,12 +35,14 @@ const expenseCategories = ['Mercado', 'Alimentação', 'Farmácia', 'Lazer', 'Tr
 type Snapshot = { version: number; entries: Entry[] }
 const db = new Dexie(cloud ? 'organiza-ai-shared' : 'organiza-ai') as Dexie & {
   entries: Table<Entry, string>
-  settings: Table<{ id: string; snapshot?: Snapshot; notifications?: NotificationSettings }, string>
+  settings: Table<{ id: string; snapshot?: Snapshot; notifications?: NotificationSettings; summaryWeek?: string }, string>
 }
 db.version(1).stores({ entries: 'id, area', settings: 'id' })
 const money = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', currencyDisplay: 'code' })
 const compactMoney = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const walletColors = ['#123d2d', '#137b6b', '#3357b8', '#775291', '#a85f2a']
+type ProgressRange = 'week' | 'month' | 'all'
+type CategoryTotal = { category: string; amount: number }
 const focusNotificationMessages = [
   { title: 'Foco concluído', body: '{minutes} minutos feitos. Seu cérebro trabalhou bonito.' },
   { title: 'Sessão entregue', body: '{subject} recebeu sua atenção. O conteúdo ficou um pouco menos assustador.' },
@@ -56,6 +58,36 @@ async function showFocusNotification(minutes: number, subject?: string) {
   const body = message.body.replaceAll('{minutes}', String(minutes)).replaceAll('{subject}', subjectName)
   const registration = await navigator.serviceWorker.ready
   await registration.showNotification(message.title, { body, tag: 'focus-complete', data: { url: '/?tab=Estudos' } })
+}
+
+function inProgressRange(date: string | undefined, range: ProgressRange) {
+  if (!date) return range === 'all'
+  if (range === 'all') return true
+  if (range === 'month') return date.startsWith(today.slice(0, 7))
+  const weekStart = shiftDay(today, -((new Date(today + 'T00:00:00Z').getUTCDay() + 6) % 7))
+  return date >= weekStart && date <= today
+}
+
+function categoryTotals(entries: Entry[], month?: string, walletId = 'all'): CategoryTotal[] {
+  const totals = new Map<string, number>()
+  entries.filter(entry => entry.kind === 'Gasto' && (!month || entry.date?.startsWith(month)) && (walletId === 'all' || entry.parent === walletId)).forEach(entry => {
+    const category = entry.category || 'Outros'
+    totals.set(category, (totals.get(category) ?? 0) + (entry.amount ?? 0))
+  })
+  return [...totals.entries()].map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount)
+}
+
+function progressStats(entries: Entry[], range: ProgressRange) {
+  const focus = entries.filter(entry => entry.kind === 'Sessão de foco' && inProgressRange(entry.date, range)).reduce((sum, entry) => sum + (entry.focusMinutes ?? 0), 0)
+  const completed = entries.filter(entry => entry.done && inProgressRange(entry.completedAt, range)).length
+  const reviews = entries.filter(entry => entry.kind === 'Revisão' && entry.done && inProgressRange(entry.completedAt, range)).length
+  const spent = entries.filter(entry => entry.kind === 'Gasto' && inProgressRange(entry.date, range)).reduce((sum, entry) => sum + (entry.amount ?? 0), 0)
+  const categories = new Map<string, number>()
+  entries.filter(entry => entry.kind === 'Gasto' && inProgressRange(entry.date, range)).forEach(entry => {
+    const category = entry.category || 'Outros'
+    categories.set(category, (categories.get(category) ?? 0) + (entry.amount ?? 0))
+  })
+  return { focus, completed, reviews, spent, categories: [...categories.entries()].map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount) }
 }
 
 function occursOn(entry: Entry, day: string) {
@@ -90,6 +122,9 @@ function App() {
   const [editing, setEditing] = useState<Entry>()
   const [message, setMessage] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [progressOpen, setProgressOpen] = useState(false)
+  const [weeklySummaryOpen, setWeeklySummaryOpen] = useState(false)
+  const [progressRange, setProgressRange] = useState<ProgressRange>('all')
   const [notifications, setNotifications] = useState<NotificationSettings>({ studies: true, agenda: true, finances: true })
   const [deviceNotifications, setDeviceNotifications] = useState<NotificationPermission | 'unsupported'>(() => typeof Notification === 'undefined' ? 'unsupported' : Notification.permission)
   const [conflict, setConflict] = useState<Snapshot>()
@@ -117,6 +152,7 @@ function App() {
   const studyDeadlines = studyPlan
     .slice(0, 4)
   const pendingReviews = studyPlan.filter(entry => entry.kind === 'Revisão' && !entry.done).length
+  const monthlyCategories = categoryTotals(entries, month, selectedWallet)
   const themes = entries.filter(entry => entry.kind === 'Tema' && entry.parent === subject)
   const agendaMonth = day.slice(0, 7)
   const firstDay = agendaMonth + '-01'
@@ -191,7 +227,7 @@ function App() {
       window.clearInterval(timer)
       setFocusRunning(false)
       if (notifications.studies) void showFocusNotification(focusMinutes, entries.find(item => item.id === focusSubject)?.title)
-      if (focusSubject) void db.entries.update(focusSubject, { focusMinutes: (entries.find(item => item.id === focusSubject)?.focusMinutes ?? 0) + focusMinutes }).then(refresh)
+      void recordFocusSession()
       return 0
     }), 1_000)
     return () => window.clearInterval(timer)
@@ -208,6 +244,16 @@ function App() {
       await db.settings.add({ id: 'initialized' })
     }).then(refresh).then(() => setReady(true)).catch(() => setError('Não foi possível abrir o armazenamento deste aparelho.'))
   }, [])
+
+  useEffect(() => {
+    if (!ready || new Date(today + 'T00:00:00Z').getUTCDay() !== 0) return
+    const summaryWeek = shiftDay(today, -6)
+    void db.settings.get('weekly-summary').then(saved => {
+      if (saved?.summaryWeek === summaryWeek) return
+      setWeeklySummaryOpen(true)
+      return db.settings.put({ id: 'weekly-summary', summaryWeek })
+    })
+  }, [ready])
 
   useEffect(() => {
     void db.settings.get('preferences').then(saved => {
@@ -230,6 +276,19 @@ function App() {
       await db.settings.put({ id: 'preferences', notifications: next })
     } catch {
       setError('Não foi possível salvar as notificações.')
+    }
+  }
+
+  async function recordFocusSession() {
+    try {
+      await db.transaction('rw', db.entries, async () => {
+        if (focusSubject) await db.entries.update(focusSubject, { focusMinutes: (entries.find(item => item.id === focusSubject)?.focusMinutes ?? 0) + focusMinutes })
+        await db.entries.add({ id: crypto.randomUUID(), area: 'Estudos', kind: 'Sessão de foco', title: 'Sessão de foco', detail: '', parent: focusSubject || undefined, date: today, focusMinutes })
+      })
+      await refresh()
+      void synchronize()
+    } catch {
+      setError('Não foi possível registrar a sessão de foco.')
     }
   }
 
@@ -273,7 +332,8 @@ function App() {
 
   async function toggle(entry: Entry) {
     try {
-      await db.entries.update(entry.id, { done: !entry.done })
+      const done = !entry.done
+      await db.entries.update(entry.id, { done, completedAt: done ? new Date().toISOString() : undefined })
       await refresh()
       void synchronize()
     } catch {
@@ -400,6 +460,7 @@ function App() {
   const fullEditor = editing?.area === 'Semana' && editing.kind !== 'Hábito'
   return <main className={focusRunning ? 'focus-active' : undefined}>
     <header className="app-header"><span className="brand"><span className="brand-mark" aria-hidden="true"><img src="/organiza-ai.svg" alt="" width="32" height="32" /></span> Organiza Aí</span><div className="app-header-actions"><span className="badge" role="status">{cloud ? message || 'Espaço compartilhado' : 'Modo local · demonstração'}</span><button className="settings-button" type="button" aria-label="Configurações" onClick={() => setSettingsOpen(true)}><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06l-2.12 2.12l-.06-.06a1.7 1.7 0 0 0-1.88-.34a1.7 1.7 0 0 0-1.04 1.56V20h-3v-.09A1.7 1.7 0 0 0 10.66 18.35a1.7 1.7 0 0 0-1.88.34l-.06.06L6.6 16.63l.06-.06A1.7 1.7 0 0 0 7 14.69a1.7 1.7 0 0 0-1.56-1.04h-.09v-3h.09A1.7 1.7 0 0 0 7 9.61a1.7 1.7 0 0 0-.34-1.88L6.6 7.67l2.12-2.12l.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.7 4.39V4.3h3v.09a1.7 1.7 0 0 0 1.04 1.56a1.7 1.7 0 0 0 1.88-.34l.06-.06l2.12 2.12l-.06.06A1.7 1.7 0 0 0 19.4 9.61a1.7 1.7 0 0 0 1.56 1.04h.09v3h-.09A1.7 1.7 0 0 0 19.4 15" /></svg></button></div></header>
+    <button className="settings-button progress-button" type="button" aria-label="Seu progresso" onClick={() => { setProgressRange('all'); setProgressOpen(true) }}><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19V5m0 14h16M8 16v-4m4 4V8m4 8v-6" /></svg></button>
     {conflict && <section className="panel">
       <h2>Alterações em conflito</h2>
       <p>Compare os itens que serão substituídos antes de escolher.</p>
@@ -495,8 +556,8 @@ function App() {
               {entries.some(entry => entry.contentId === content.id) && list(entries.filter(entry => entry.contentId === content.id))}
             </div>}
           </li>)}</ul></section>}
-          {entries.some(entry => entry.parent === item.id && entry.kind !== 'Tema' && !themes.some(content => content.id === entry.contentId)) && <section className="content-group content-activities"><h3>Atividades</h3>{list(entries.filter(entry => entry.parent === item.id && entry.kind !== 'Tema' && !themes.some(content => content.id === entry.contentId)))}</section>}
-          {!themes.length && !entries.some(entry => entry.parent === item.id && entry.kind !== 'Tema') && <p className="empty-state">Nenhum conteúdo cadastrado.</p>}
+          {entries.some(entry => entry.parent === item.id && entry.kind !== 'Tema' && entry.kind !== 'Sessão de foco' && !themes.some(content => content.id === entry.contentId)) && <section className="content-group content-activities"><h3>Atividades</h3>{list(entries.filter(entry => entry.parent === item.id && entry.kind !== 'Tema' && entry.kind !== 'Sessão de foco' && !themes.some(content => content.id === entry.contentId)))}</section>}
+          {!themes.length && !entries.some(entry => entry.parent === item.id && entry.kind !== 'Tema' && entry.kind !== 'Sessão de foco') && <p className="empty-state">Nenhum conteúdo cadastrado.</p>}
         </div>}
       </li>)}</ul> : <p className="empty-state">Nenhuma matéria cadastrada.</p>}
       </details>}
@@ -540,6 +601,7 @@ function App() {
           return <div key={label}><span className={`ring ring-${index}`} style={{ backgroundImage }} aria-hidden="true" /><strong>{money.format(Number(value))}</strong><small>{label}</small></div>
         })}</div>
         <p className="piggy-total">Guardado nos cofrinhos: <strong>{money.format(piggyTotal)}</strong></p>
+        <section className="finance-categories"><div className="toolbar"><h3>Gastos por categoria</h3><small>{new Intl.DateTimeFormat('pt-BR', { month: 'short', timeZone: 'UTC' }).format(new Date(`${month}-01T00:00:00Z`))}</small></div>{monthlyCategories.length ? <ul>{monthlyCategories.map(item => <li key={item.category}><span><ExpenseCategoryIcon category={item.category} size={16} /><strong>{item.category}</strong></span><div><strong>{money.format(item.amount)}</strong><span className="category-bar"><span style={{ width: `${item.amount / monthlyCategories[0].amount * 100}%` }} /></span></div></li>)}</ul> : <p className="empty-state">Nenhum gasto categorizado neste mês.</p>}</section>
       </>}
       {tab === 'Finanças' && financeList(entries.filter(item => {
         if (item.area !== tab) return false
@@ -598,6 +660,8 @@ function App() {
         <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg>
       </button>
     </div>}
+    {weeklySummaryOpen && <ItemEditor modal onCancel={() => setWeeklySummaryOpen(false)}><section className="panel progress-panel" aria-label="Resumo da semana"><button className="modal-close" type="button" aria-label="Fechar resumo" onClick={() => setWeeklySummaryOpen(false)}>×</button><ProgressOverview entries={entries} range="week" title="Minha semana" showRanges={false} /></section></ItemEditor>}
+    {progressOpen && <ItemEditor modal onCancel={() => setProgressOpen(false)}><section className="panel progress-panel" aria-label="Seu progresso"><ProgressOverview entries={entries} range={progressRange} onRangeChange={setProgressRange} title="Seu progresso" /><button type="button" onClick={() => setProgressOpen(false)}>Fechar</button></section></ItemEditor>}
     {activePiggyBank && <ItemEditor modal onCancel={() => setActivePiggyBank(undefined)}><section className="panel piggy-movement" aria-label="Movimentar cofrinho"><h1 id="item-editor-title">{activePiggyBank.title}</h1><p>Separado: <strong>{money.format(piggyBalance(activePiggyBank.id))}</strong></p><div><button type="button" className="primary" onClick={() => openPiggyMovement(activePiggyBank, 'Entrada')}>Adicionar dinheiro</button><button type="button" onClick={() => openPiggyMovement(activePiggyBank, 'Gasto')}>Retirar dinheiro</button></div><button type="button" onClick={() => setActivePiggyBank(undefined)}>Cancelar</button></section></ItemEditor>}
     {settingsOpen && <ItemEditor modal onCancel={() => setSettingsOpen(false)}><section className="panel settings-panel" aria-label="Configurações"><div className="settings-heading"><span className="settings-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06l-2.12 2.12l-.06-.06a1.7 1.7 0 0 0-1.88-.34a1.7 1.7 0 0 0-1.04 1.56V20h-3v-.09A1.7 1.7 0 0 0 10.66 18.35a1.7 1.7 0 0 0-1.88.34l-.06.06L6.6 16.63l.06-.06A1.7 1.7 0 0 0 7 14.69a1.7 1.7 0 0 0-1.56-1.04h-.09v-3h.09A1.7 1.7 0 0 0 7 9.61a1.7 1.7 0 0 0-.34-1.88L6.6 7.67l2.12-2.12l.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.7 4.39V4.3h3v.09a1.7 1.7 0 0 0 1.04 1.56a1.7 1.7 0 0 0 1.88-.34l.06-.06l2.12 2.12l-.06.06A1.7 1.7 0 0 0 19.4 9.61a1.7 1.7 0 0 0 1.56 1.04h.09v3h-.09A1.7 1.7 0 0 0 19.4 15" /></svg></span><div><h1 id="item-editor-title">Configurações</h1><p>Notificações</p></div></div><section className="device-notification"><div><strong>Notificações do dispositivo</strong><small>{deviceNotifications === 'granted' ? 'Ativadas neste aparelho' : 'Ative para receber avisos como os de outros apps'}</small></div>{deviceNotifications === 'granted' ? <span className="device-notification-status">Ativas</span> : <button type="button" className="primary" onClick={() => void activateDeviceNotifications()}>Ativar</button>}</section><div className="notification-options">{([{ key: 'studies', title: 'Estudos', detail: 'Revisões, provas e foco concluído' }, { key: 'agenda', title: 'Agenda', detail: 'Compromissos próximos e atrasados' }, { key: 'finances', title: 'Finanças', detail: 'Contas e parcelas a vencer' }] as const).map(option => <label className="notification-option" key={option.key}><span><strong>{option.title}</strong><small>{option.detail}</small></span><input type="checkbox" checked={notifications[option.key]} onChange={() => void updateNotification(option.key)} /></label>)}</div><button type="button" onClick={() => setSettingsOpen(false)}>Concluir</button></section></ItemEditor>}
     {editing && <ItemEditor key={editing.id} modal onCancel={() => { setEditing(undefined); setError('') }}>
@@ -657,6 +721,12 @@ function StudyRowActions({ title, onEdit, onRemove }: { title: string; onEdit: (
       </svg>
     </button>
   </>
+}
+
+function ProgressOverview({ entries, range, onRangeChange, title, showRanges = true }: { entries: Entry[]; range: ProgressRange; onRangeChange?: (range: ProgressRange) => void; title: string; showRanges?: boolean }) {
+  const stats = progressStats(entries, range)
+  const maxCategory = stats.categories[0]?.amount ?? 1
+  return <><div className="progress-heading"><div><p>{showRanges ? 'Seu progresso' : 'Fechamento da semana'}</p><h1 id="item-editor-title">{title}</h1></div></div>{showRanges && <div className="progress-ranges" role="group" aria-label="Período do progresso">{([{ id: 'week', label: 'Semana' }, { id: 'month', label: 'Mês' }, { id: 'all', label: 'Desde o início' }] as const).map(option => <button type="button" key={option.id} aria-pressed={range === option.id} onClick={() => onRangeChange?.(option.id)}>{option.label}</button>)}</div>}<dl className="progress-stats"><div><dt>Tarefas concluídas</dt><dd>{stats.completed}</dd></div><div><dt>Revisões feitas</dt><dd>{stats.reviews}</dd></div><div><dt>Horas de foco</dt><dd>{`${Math.floor(stats.focus / 60)}h ${stats.focus % 60}min`}</dd></div><div><dt>Total gasto</dt><dd>{money.format(stats.spent)}</dd></div></dl><section className="progress-categories"><h2>Gastos por categoria</h2>{stats.categories.length ? <ul>{stats.categories.slice(0, 4).map(item => <li key={item.category}><span><ExpenseCategoryIcon category={item.category} size={16} />{item.category}</span><strong>{money.format(item.amount)}</strong><span className="category-bar"><span style={{ width: `${item.amount / maxCategory * 100}%` }} /></span></li>)}</ul> : <p className="empty-state">Ainda não há gastos neste período.</p>}</section></>
 }
 
 function ItemEditor({ modal, onCancel, children }: { modal: boolean; onCancel: () => void; children: ReactNode }) {
