@@ -350,6 +350,10 @@ main.focus-active .study-subjects .entry { color: #ffffff !important; }
 main.focus-active small { color: var(--muted); }
 main.focus-active .text-action { color: var(--lime); }
 main.focus-active .focus-subject-picker > button { color: #ffffff; background: var(--tint); }
+main.focus-active button:not(.text-action):not([aria-current]) { color: #ffffff; border-color: #5d8358; background: #214b22; }
+main.focus-active button[aria-current], main.focus-active button[aria-pressed="true"] { color: var(--forest); border-color: var(--lime); background: var(--lime); }
+main.focus-active .primary { color: var(--forest); border-color: var(--lime); background: var(--lime); }
+main.focus-active .focus-subject-picker > button { color: #ffffff; border-color: #5d8358; background: #214b22; }
 main.focus-active .focus-controls .primary { color: var(--forest); border-color: var(--lime); background: var(--lime); }
 .finance-goals { margin-top: 1rem; }
 .finance-piggy-bank { padding: .5rem .65rem; border: 1px solid var(--border); border-radius: 1rem; background: var(--tint); }
