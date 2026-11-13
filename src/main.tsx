@@ -601,13 +601,13 @@ function App() {
           return <div key={label}><span className={`ring ring-${index}`} style={{ backgroundImage }} aria-hidden="true" /><strong>{money.format(Number(value))}</strong><small>{label}</small></div>
         })}</div>
         <p className="piggy-total">Guardado nos cofrinhos: <strong>{money.format(piggyTotal)}</strong></p>
-        <section className="finance-categories"><div className="toolbar"><h3>Gastos por categoria</h3><small>{new Intl.DateTimeFormat('pt-BR', { month: 'short', timeZone: 'UTC' }).format(new Date(`${month}-01T00:00:00Z`))}</small></div>{monthlyCategories.length ? <ul>{monthlyCategories.map(item => <li key={item.category}><span><ExpenseCategoryIcon category={item.category} size={16} /><strong>{item.category}</strong></span><div><strong>{money.format(item.amount)}</strong><span className="category-bar"><span style={{ width: `${item.amount / monthlyCategories[0].amount * 100}%` }} /></span></div></li>)}</ul> : <p className="empty-state">Nenhum gasto categorizado neste mês.</p>}</section>
       </>}
       {tab === 'Finanças' && financeList(entries.filter(item => {
         if (item.area !== tab) return false
         const included = (item.kind === 'Entrada' && item.date?.startsWith(month)) || (expenses.includes(item) && (!item.paymentFor || !planned.some(plan => plan.id === item.paymentFor))) || planned.includes(item)
         return included && (selectedWallet === 'all' || item.parent === selectedWallet)
       }))}
+      {tab === 'Finanças' && <section className="finance-categories"><div className="toolbar"><h3>Gastos por categoria</h3><small>{new Intl.DateTimeFormat('pt-BR', { month: 'short', timeZone: 'UTC' }).format(new Date(`${month}-01T00:00:00Z`))}</small></div>{monthlyCategories.length ? <ul>{monthlyCategories.map(item => <li key={item.category}><span><ExpenseCategoryIcon category={item.category} size={16} /><strong>{item.category}</strong></span><div><strong>{money.format(item.amount)}</strong><span className="category-bar"><span style={{ width: `${item.amount / monthlyCategories[0].amount * 100}%` }} /></span></div></li>)}</ul> : <p className="empty-state">Nenhum gasto categorizado neste mês.</p>}</section>}
     </section>}
     {ready && tab === 'Estudos' && !editing && <div className="study-actions">
       <div id="study-create-options" hidden={!studyActionsOpen}>
