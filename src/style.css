@@ -251,6 +251,8 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .piggy-list { display: grid; gap: .3rem; margin-top: .35rem; }
 .piggy-list > li { display: block; padding: 0; border: 0; }
 .piggy-goal { position: relative; }
+.piggy-goal:has(.piggy-menu-options) { z-index: 4; }
+.piggy-list:has(.piggy-menu-options) .piggy-goal:not(:has(.piggy-menu-options)) .piggy-more { visibility: hidden; }
 .piggy-open { display: grid; width: 100%; gap: .25rem; padding: .55rem 2.65rem .55rem .65rem; text-align: left; }
 .piggy-heading { display: flex; min-width: 0; align-items: baseline; justify-content: space-between; gap: .5rem; }
 .piggy-heading > strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; }
