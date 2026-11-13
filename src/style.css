@@ -249,7 +249,7 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .content-group { margin-top: .7rem; }
 .content-group > h3 { margin: 0 0 .4rem; color: var(--muted); font-size: .76rem; }
 .content-list { display: grid; gap: .4rem; margin: 0; }
-.content-list > li { overflow: hidden; border: 1px solid var(--border); border-radius: .7rem; background: var(--tint); }
+.content-list > li { display: block; overflow: hidden; border: 1px solid var(--border); border-radius: .7rem; background: var(--tint); }
 .content-list .subject-row { min-height: 2.8rem; padding: .15rem .25rem; }
 .content-list .subject-content { padding: .45rem .6rem .6rem; background: var(--white); }
 .content-activities > ul { margin: 0; border: 1px solid var(--border); border-radius: .7rem; overflow: hidden; }
@@ -261,7 +261,6 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .subject-picker { max-height: min(32rem, 85dvh); }
 .subject-picker button { overflow-wrap: anywhere; }
 .study-subjects summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; color: var(--forest); font-size: 1.4rem; font-weight: 780; letter-spacing: -.04em; }
-.study-subjects summary small { display: grid; width: 1.6rem; height: 1.6rem; place-items: center; border-radius: 50%; color: var(--forest); background: var(--lime); font-size: .72rem; letter-spacing: 0; }
 .study-subjects > .subject-list { display: grid; gap: .55rem; margin-top: .65rem; }
 .study-plan { border-top: 3px solid var(--teal); }
 .study-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }

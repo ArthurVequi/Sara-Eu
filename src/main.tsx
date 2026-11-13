@@ -412,7 +412,7 @@ function App() {
         <h3>Sem data</h3>{list(entries.filter(item => item.area === 'Semana' && item.kind !== 'Hábito' && !item.date))}
       </section>}
       {tab === 'Estudos' && <details className="study-subjects" open>
-        <summary><span>Matérias</span><small>{subjects.length}</small></summary>
+        <summary>Matérias</summary>
         {subjects.length ? <ul className="subject-list">{subjects.map(item => <li className="study-subject-card" key={item.id}>
         <button className="entry subject-toggle subject-card-trigger" aria-expanded={subject === item.id} onClick={() => {
           setSubject(subject === item.id ? '' : item.id)
