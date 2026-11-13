@@ -158,7 +158,10 @@ main { --page-gutter: clamp(1rem, 4vw, 2rem); max-width: 60rem; padding-inline: 
 .dashboard-money > div { min-width: 0; }
 .text-action { border: 0; color: var(--forest); font-size: .9rem; font-weight: 650; }
 .app-nav { border: 1px solid var(--border); padding: .35rem; border-radius: 1rem; background: var(--white); }
-.app-nav button { display: grid; place-items: center; gap: .15rem; border-color: transparent; }
+.app-nav button { position: relative; display: grid; place-items: center; gap: .15rem; border-color: transparent; }
+.app-nav button[aria-current] { background: transparent; }
+.app-nav .nav-active { position: absolute; z-index: 0; inset: 0; border-radius: .75rem; background: var(--lime); }
+.app-nav button > svg, .app-nav .nav-label { position: relative; z-index: 1; }
 button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--forest); outline-offset: 2px; }
 @media (max-width: 600px) {
   main { --page-gutter: .65rem; padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
@@ -352,6 +355,7 @@ main.focus-active .text-action { color: var(--lime); }
 main.focus-active .focus-subject-picker > button { color: #ffffff; background: var(--tint); }
 main.focus-active button:not(.text-action):not([aria-current]) { color: #ffffff; border-color: #5d8358; background: #214b22; }
 main.focus-active button[aria-current], main.focus-active button[aria-pressed="true"] { color: var(--forest); border-color: var(--lime); background: var(--lime); }
+main.focus-active .app-nav button[aria-current] { border-color: transparent; background: transparent; }
 main.focus-active .primary { color: var(--forest); border-color: var(--lime); background: var(--lime); }
 main.focus-active .focus-subject-picker > button { color: #ffffff; border-color: #5d8358; background: #214b22; }
 main.focus-active .focus-controls .primary { color: var(--forest); border-color: var(--lime); background: var(--lime); }

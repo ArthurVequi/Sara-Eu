@@ -501,10 +501,11 @@ function App() {
     </section>}
     <nav className="app-nav" aria-label="Navegação principal">
       {(['Início', ...areas] as const).map((area, index) => <button key={area} aria-current={tab === area ? 'page' : undefined} onClick={() => navigate(area)}>
+        {tab === area && <motion.span className="nav-active" layoutId="active-nav-tab" transition={{ type: 'spring', stiffness: 380, damping: 32 }} aria-hidden="true" />}
         <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d={navIcons[index]} />
         </svg>
-        {area === 'Início' ? 'Meu dia' : area}
+        <span className="nav-label">{area === 'Início' ? 'Meu dia' : area}</span>
       </button>)}
     </nav>
     <AnimatePresence initial={false} mode="wait" custom={tabDirection}>
