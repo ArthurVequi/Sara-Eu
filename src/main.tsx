@@ -79,6 +79,26 @@ async function showFocusNotification(minutes: number, subject?: string) {
   await registration.showNotification(message.title, { body, tag: 'focus-complete', data: { url: '/?tab=Estudos' } })
 }
 
+async function showNotificationSetupTest() {
+  if (!('serviceWorker' in navigator)) return
+  const registration = await navigator.serviceWorker.ready
+  await registration.showNotification('Notificações ativadas', {
+    body: 'Funcionou! Seu celular já sabe quando chamar você de volta ao app.',
+    tag: 'notification-setup-test-1',
+    data: { url: '/' },
+  })
+  window.setTimeout(() => void registration.showNotification('Teste 2 de 3', {
+    body: 'Alerta confirmado. A tecnologia fez a parte dela; agora falta você fazer a sua.',
+    tag: 'notification-setup-test-2',
+    data: { url: '/' },
+  }), 2_000)
+  window.setTimeout(() => void registration.showNotification('Teste 3 de 3', {
+    body: 'Último teste entregue. Pode voltar a organizar a vida com um pouco mais de estilo.',
+    tag: 'notification-setup-test-3',
+    data: { url: '/' },
+  }), 4_000)
+}
+
 function inProgressRange(date: string | undefined, range: ProgressRange) {
   if (!date) return range === 'all'
   if (range === 'all') return true
@@ -325,6 +345,7 @@ function App() {
     try {
       await enableDeviceNotifications()
       setDeviceNotifications('granted')
+      await showNotificationSetupTest()
       try { await enableMorningPush() } catch { /* O foco continua funcionando neste aparelho sem push remoto. */ }
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Não foi possível ativar as notificações.')
