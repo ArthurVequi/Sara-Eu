@@ -245,12 +245,16 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .study-subjects > .subject-list { margin-top: .65rem; }
 .study-subjects > .subject-list > li:first-child { border-top: 1px solid var(--border); }
 .study-deadlines .empty-state { font-size: .8rem; color: #5b6d57; }
-.focus-panel { display: grid; gap: .7rem; }
-.focus-panel .toolbar { align-items: baseline; }
-.focus-panel .toolbar strong { font-variant-numeric: tabular-nums; font-size: 1.25rem; }
+.focus-panel { display: grid; gap: .8rem; color: var(--white); background: var(--forest); border-color: var(--forest); }
+.focus-overview { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+.focus-overview p { margin: 0 0 .15rem; color: var(--lime); font-size: .78rem; font-weight: 700; }
+.focus-overview h2 { font-size: 1.55rem; letter-spacing: -.045em; }
+.focus-time { color: var(--lime); font-size: clamp(2.15rem, 10vw, 3rem); line-height: .9; letter-spacing: -.075em; font-variant-numeric: tabular-nums; }
 .focus-controls { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, auto); gap: .45rem; align-items: center; }
 .focus-controls select { min-width: 0; min-height: 44px; padding: .55rem; border: 1px solid var(--border); border-radius: .75rem; background: var(--white); }
 .focus-controls button { min-height: 44px; }
+.focus-controls .primary { color: var(--forest); border-color: var(--lime); background: var(--lime); }
+.focus-panel > small { color: #d7e6d0; }
 .finance-goals { margin-top: 1rem; }
 .finance-piggy-bank { padding: .5rem .65rem; border: 1px solid var(--border); border-radius: 1rem; background: var(--tint); }
 .finance-piggy-bank .toolbar { margin: 0; color: var(--forest); }
