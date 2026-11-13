@@ -1,4 +1,4 @@
-:root { --forest: #112c0f; --white: #ffffff; --lime: #c9fa6a; --teal: #13b195; --ink: #112c0f; --muted: #415840; --tint: #f3f9ed; --border: #d7e6d0; }
+:root { --forest: #112c0f; --white: #ffffff; --lime: #c9fa6a; --teal: #13b195; --piggy: #e7ae39; --ink: #112c0f; --muted: #415840; --tint: #f3f9ed; --border: #d7e6d0; }
 @font-face {
   font-family: "Bricolage Grotesque";
   src: url("@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2") format("woff2");
@@ -67,6 +67,8 @@ select { font: inherit; }
 .ring { display: block; width: 3.5rem; aspect-ratio: 1; border-radius: 50%; margin: 0 auto .5rem; --ring: var(--forest); }
 .ring-1 { --ring: var(--lime); }
 .ring-2 { --ring: var(--teal); }
+.piggy-total { margin: 0; color: var(--muted); font-size: .85rem; }
+.piggy-total strong { color: var(--forest); font-variant-numeric: tabular-nums; }
 .week-views { display: grid; grid-template-columns: .75fr 1fr .75fr 1.4fr; gap: .25rem; margin-top: .75rem; }
 .week-views button { min-width: 0; padding-inline: .15rem; font-size: .85rem; }
 .week-controls { margin: .65rem 0; justify-content: space-between; flex-wrap: nowrap; }

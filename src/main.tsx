@@ -111,9 +111,9 @@ function App() {
   const current = financeSummary(entries, today.slice(0, 7))
   const exams = entries.filter(entry => entry.kind === 'Prova' && entry.date && entry.date >= today)
     .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '')).slice(0, 3)
-  const limit = entries.find(entry => entry.kind === 'Limite' && entry.date?.startsWith(month))?.amount
   const selectedAccount = accounts.find(account => account.id === selectedWallet)
   const financeView = selectedAccount ? walletFinanceSummary(selectedAccount, month) : { available, reserved, spent }
+  const piggyTotal = financialGoals.reduce((sum, goal) => sum + piggyBalance(goal.id), 0)
 
   async function synchronize(choice?: 'local' | 'remote') {
     if (!cloud || !navigator.onLine) return
@@ -503,9 +503,11 @@ function App() {
         <div className="finance-summary">{[['Disponível', financeView.available], ['Reservado', financeView.reserved], ['Gasto', financeView.spent]].map(([label, value], index) => {
           const combined = Math.max(financeView.available, 0) + financeView.reserved + financeView.spent
           const percent = combined ? Math.max(Number(value), 0) / combined * 100 : 0
-          return <div key={label}><span className={`ring ring-${index}`} style={{ backgroundImage: `conic-gradient(var(--ring) ${percent}%, var(--tint) 0)` }} aria-hidden="true" /><strong>{money.format(Number(value))}</strong><small>{label}</small></div>
+          const piggyPercent = index === 0 && combined ? Math.min(Math.max(piggyTotal, 0), Math.max(financeView.available, 0)) / combined * 100 : 0
+          const backgroundImage = index === 0 && piggyPercent ? `conic-gradient(var(--piggy) ${piggyPercent}%, var(--ring) 0 ${percent}%, var(--tint) 0)` : `conic-gradient(var(--ring) ${percent}%, var(--tint) 0)`
+          return <div key={label}><span className={`ring ring-${index}`} style={{ backgroundImage }} aria-hidden="true" /><strong>{money.format(Number(value))}</strong><small>{label}</small></div>
         })}</div>
-        {limit !== undefined && <p>Limite do mês: {money.format(limit)}{financeView.spent > limit ? ' · Limite ultrapassado' : ''}</p>}
+        <p className="piggy-total">Guardado nos cofrinhos: <strong>{money.format(piggyTotal)}</strong></p>
       </>}
       {tab === 'Finanças' && financeList(entries.filter(item => {
         if (item.area !== tab) return false
