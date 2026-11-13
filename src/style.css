@@ -248,7 +248,14 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .finance-piggy-bank h4 { display: inline-flex; align-items: center; gap: .4rem; margin: 0; font-size: 1rem; }
 .piggy-icon { display: grid; place-items: center; width: 1.8rem; height: 1.8rem; border-radius: .6rem; color: var(--forest); background: var(--lime); }
 .finance-goals li { padding-block: .3rem; }
+.piggy-list { display: grid; gap: .45rem; margin-top: .45rem; }
+.piggy-list > li { display: block; padding: 0; border: 0; }
+.piggy-goal { display: grid; width: 100%; gap: .35rem; padding: .7rem; text-align: left; }
+.piggy-amounts { display: grid; gap: .1rem; color: var(--muted); font-size: .82rem; }
+.piggy-progress-row { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: .5rem; }
+.piggy-progress-row > strong { font-size: .82rem; }
 .goal-progress { display: block; height: .38rem; margin-top: .35rem; overflow: hidden; border-radius: 1rem; background: var(--tint); }
+.piggy-progress-row .goal-progress { width: 100%; margin: 0; height: .55rem; background: var(--border); }
 .goal-progress > span { display: block; height: 100%; border-radius: inherit; background: var(--teal); }
 .no-account { display: grid; gap: .35rem; }
 .no-account p { margin: 0; color: var(--muted); font-size: .9rem; }
