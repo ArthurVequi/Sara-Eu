@@ -470,6 +470,15 @@ function App() {
               <strong>Novo</strong>
             </button>
           </div>
+          <section className="finance-goals finance-piggy-bank" aria-label="Cofrinho">
+            <div className="toolbar"><h4><span className="piggy-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M15 10c0-.55.45-1 1-1s1 .45 1 1s-.45 1-1 1s-1-.45-1-1M8 9h5V7H8zm14-1.5v6.97l-2.82.94L17.5 21H12v-2h-2v2H4.5S2 12.54 2 9.5S4.46 4 7.5 4h5c.91-1.21 2.36-2 4-2a1.498 1.498 0 0 1 1.38 2.08c-.14.34-.26.73-.32 1.15l2.27 2.27zm-2 2h-1L15.5 6c0-.65.09-1.29.26-1.91c-.97.25-1.76.97-2.09 1.91H7.5C5.57 6 4 7.57 4 9.5c0 1.88 1.22 6.65 2 9.5h2v-2h6v2h2l1.56-5.15l2.44-.82z" /></svg></span>Cofrinho</h4><button type="button" className="text-action" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind: 'Meta financeira' })}>Novo</button></div>
+            <p>Objetivos e depósitos compartilhados entre as carteiras.</p>
+            {financialGoals.length ? <ul>{financialGoals.map(goal => {
+              const saved = entries.filter(item => item.kind === 'Entrada' && item.goalId === goal.id).reduce((sum, item) => sum + (item.amount ?? 0), 0)
+              const progress = goal.amount ? Math.min(100, saved / goal.amount * 100) : 0
+              return <li key={goal.id}><button className="entry" onClick={() => setEditing(goal)}><strong>{goal.title}</strong><small>{money.format(saved)} de {money.format(goal.amount ?? 0)}</small><span className="goal-progress" aria-label={`${Math.round(progress)}% concluída`}><span style={{ width: `${progress}%` }} /></span></button></li>
+            })}</ul> : <p className="empty-state">Crie um cofrinho para acompanhar seus depósitos.</p>}
+          </section>
         </section>
         <div className="toolbar finance-month-controls" role="group" aria-label="Navegação por mês">
           <button aria-label="Mês anterior" onClick={() => setMonth(shiftMonth(month, -1))}>‹</button>
@@ -483,13 +492,6 @@ function App() {
           return <div key={label}><span className={`ring ring-${index}`} style={{ backgroundImage: `conic-gradient(var(--ring) ${percent}%, var(--tint) 0)` }} aria-hidden="true" /><strong>{money.format(Number(value))}</strong><small>{label}</small></div>
         })}</div>
         {limit !== undefined && <p>Limite do mês: {money.format(limit)}{financeView.spent > limit ? ' · Limite ultrapassado' : ''}</p>}
-        {selectedWallet === 'all' && <details className="finance-goals" open><summary>Metas financeiras</summary><div className="toolbar"><span>Objetivos vinculados às suas entradas</span><button type="button" className="text-action" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind: 'Meta financeira' })}>Nova meta</button></div>
-          {financialGoals.length ? <ul>{financialGoals.map(goal => {
-            const saved = entries.filter(item => item.kind === 'Entrada' && item.goalId === goal.id).reduce((sum, item) => sum + (item.amount ?? 0), 0)
-            const progress = goal.amount ? Math.min(100, saved / goal.amount * 100) : 0
-            return <li key={goal.id}><button className="entry" onClick={() => setEditing(goal)}><strong>{goal.title}</strong><small>{money.format(saved)} de {money.format(goal.amount ?? 0)}</small><span className="goal-progress" aria-label={`${Math.round(progress)}% concluída`}><span style={{ width: `${progress}%` }} /></span></button></li>
-          })}</ul> : <p className="empty-state">Crie uma meta para acompanhar cada depósito.</p>}
-        </details>}
       </>}
       {tab === 'Finanças' && financeList(entries.filter(item => {
         if (item.area !== tab) return false
@@ -564,7 +566,7 @@ function App() {
       {editing.area === 'Finanças' && ['Entrada', 'Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && (accounts.length ? <label>Onde<select required value={editing.parent ?? ''} onChange={event => setEditing({ ...editing, parent: event.target.value || undefined })}>
         <option value="">Selecionar</option>{accounts.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
       </select></label> : <div className="no-account"><strong>Onde</strong><p>Você ainda não tem uma carteira.</p><button type="button" onClick={() => void createInitialWallet()}>Criar carteira</button></div>)}
-      {editing.kind === 'Entrada' && <SubjectPicker label="Meta" items={financialGoals} value={editing.goalId} onChange={goalId => setEditing({ ...editing, goalId })} />}
+      {editing.kind === 'Entrada' && <SubjectPicker label="Cofrinho" items={financialGoals} value={editing.goalId} onChange={goalId => setEditing({ ...editing, goalId })} />}
       {editing.area === 'Finanças' && ['Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && <label>Categoria<input value={editing.category ?? ''} onChange={event => setEditing({ ...editing, category: event.target.value })} /></label>}
       {editing.kind === 'Parcela' && <label>Número de parcelas<input required type="number" min="2" step="1" value={editing.installments ?? ''} onChange={event => setEditing({ ...editing, installments: event.target.valueAsNumber || undefined })} /></label>}
       {editing.area !== 'Semana' && editing.area !== 'Finanças' && <label>{editing.area === 'Estudos' ? 'Descrição (opcional)' : 'Detalhes'}<input value={editing.detail} onChange={event => setEditing({ ...editing, detail: event.target.value })} /></label>}
