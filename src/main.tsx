@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode, type TouchEvent } from 'react'
 import { createRoot } from 'react-dom/client'
 import { cloud, enableDeviceNotifications, enableMorningPush } from './cloud'
 import './style.css'
@@ -142,6 +142,7 @@ function App() {
   const [focusMinutes, setFocusMinutes] = useState(25)
   const [focusSeconds, setFocusSeconds] = useState(25 * 60)
   const [focusRunning, setFocusRunning] = useState(false)
+  const swipeStart = useRef<{ x: number; y: number }>()
   const [focusSubject, setFocusSubject] = useState('')
   const accounts = entries.filter(entry => entry.kind === 'Conta')
   const subjects = entries.filter(entry => entry.kind === 'Matéria')
@@ -457,8 +458,29 @@ function App() {
     window.scrollTo(0, 0)
   }
 
+  function beginTabSwipe(event: TouchEvent<HTMLElement>) {
+    if (editing || settingsOpen || progressOpen || weeklySummaryOpen || activePiggyBank) return
+    const target = event.target as HTMLElement
+    if (target.closest('button, input, select, textarea, a, [role="button"]')) return
+    const touch = event.touches[0]
+    swipeStart.current = { x: touch.clientX, y: touch.clientY }
+  }
+
+  function finishTabSwipe(event: TouchEvent<HTMLElement>) {
+    const start = swipeStart.current
+    swipeStart.current = undefined
+    if (!start || editing || settingsOpen || progressOpen || weeklySummaryOpen || activePiggyBank) return
+    const touch = event.changedTouches[0]
+    const deltaX = touch.clientX - start.x
+    const deltaY = touch.clientY - start.y
+    if (Math.abs(deltaX) < 72 || Math.abs(deltaX) < Math.abs(deltaY) * 1.35) return
+    const tabs: (typeof tab)[] = ['Início', 'Semana', 'Estudos', 'Finanças']
+    const next = tabs.indexOf(tab) + (deltaX < 0 ? 1 : -1)
+    if (next >= 0 && next < tabs.length) navigate(tabs[next])
+  }
+
   const fullEditor = editing?.area === 'Semana' && editing.kind !== 'Hábito'
-  return <main className={focusRunning ? 'focus-active' : undefined}>
+  return <main className={focusRunning ? 'focus-active' : undefined} onTouchStart={beginTabSwipe} onTouchEnd={finishTabSwipe}>
     <header className="app-header"><span className="brand"><span className="brand-mark" aria-hidden="true"><img src="/organiza-ai.svg" alt="" width="32" height="32" /></span> Organiza Aí</span><div className="app-header-actions"><span className="badge" role="status">{cloud ? message || 'Espaço compartilhado' : 'Modo local · demonstração'}</span><button className="settings-button" type="button" aria-label="Configurações" onClick={() => setSettingsOpen(true)}><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06l-2.12 2.12l-.06-.06a1.7 1.7 0 0 0-1.88-.34a1.7 1.7 0 0 0-1.04 1.56V20h-3v-.09A1.7 1.7 0 0 0 10.66 18.35a1.7 1.7 0 0 0-1.88.34l-.06.06L6.6 16.63l.06-.06A1.7 1.7 0 0 0 7 14.69a1.7 1.7 0 0 0-1.56-1.04h-.09v-3h.09A1.7 1.7 0 0 0 7 9.61a1.7 1.7 0 0 0-.34-1.88L6.6 7.67l2.12-2.12l.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.7 4.39V4.3h3v.09a1.7 1.7 0 0 0 1.04 1.56a1.7 1.7 0 0 0 1.88-.34l.06-.06l2.12 2.12l-.06.06A1.7 1.7 0 0 0 19.4 9.61a1.7 1.7 0 0 0 1.56 1.04h.09v3h-.09A1.7 1.7 0 0 0 19.4 15" /></svg></button></div></header>
     <button className="settings-button progress-button" type="button" aria-label="Seu progresso" onClick={() => { setProgressRange('all'); setProgressOpen(true) }}><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19V5m0 14h16M8 16v-4m4 4V8m4 8v-6" /></svg></button>
     {conflict && <section className="panel">
