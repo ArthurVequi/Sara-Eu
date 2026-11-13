@@ -308,6 +308,10 @@ function App() {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!editing || (editing.kind !== 'Entrada' && !editing.title.trim())) return
+    if (editing.area === 'Finanças' && !editing.piggyMovement && ['Entrada', 'Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? '') && accounts.length && !editing.parent) {
+      setError('Selecione uma carteira antes de salvar.')
+      return
+    }
     if (!editing.date && (editing.weekly || editing.kind === 'Prova' || editing.kind === 'Revisão' || (editing.area === 'Finanças' && editing.kind !== 'Conta' && editing.kind !== 'Meta financeira'))) {
       setError('Escolha uma data antes de salvar.')
       return
@@ -701,18 +705,16 @@ function App() {
       <section className={fullEditor ? 'panel commitment-editor' : 'panel'} aria-label="Editar item"><form onSubmit={save}>
       {editing.area === 'Semana' && <h1 id="item-editor-title">{editing.kind === 'Hábito' ? entries.some(item => item.id === editing.id) ? 'Editar hábito' : 'Novo hábito' : entries.some(item => item.id === editing.id) ? 'Editar compromisso' : 'Novo compromisso'}</h1>}
       {editing.area === 'Estudos' && <h1 id="item-editor-title">{entries.some(item => item.id === editing.id) ? `Editar ${editing.kind === 'Tema' ? 'conteúdo' : editing.kind?.toLowerCase() ?? 'item'}` : editing.kind === 'Tema' ? 'Novo conteúdo' : `Nova ${editing.kind?.toLowerCase() ?? 'matéria'}`}</h1>}
-      {editing.area === 'Finanças' && <h1 id="item-editor-title">{isPiggyMovement ? `${editing.kind === 'Entrada' ? 'Adicionar ao' : 'Retirar do'} cofrinho ${financialGoals.find(goal => goal.id === editing.goalId)?.title ?? ''}` : editing.kind === 'Entrada' ? 'Adicionar saldo' : editing.kind === 'Meta financeira' ? entries.some(item => item.id === editing.id) ? 'Editar cofrinho' : 'Novo cofrinho' : entries.some(item => item.id === editing.id) ? 'Editar lançamento' : editing.kind === 'Conta fixa' ? 'Nova conta fixa' : editing.kind === 'Parcela' ? 'Nova parcela' : editing.kind === 'Limite' ? 'Limite mensal' : 'Novo gasto'}</h1>}
+      {editing.area === 'Finanças' && <h1 id="item-editor-title">{isPiggyMovement ? `${editing.kind === 'Entrada' ? 'Adicionar ao' : 'Retirar do'} cofrinho ${financialGoals.find(goal => goal.id === editing.goalId)?.title ?? ''}` : editing.kind === 'Conta' ? entries.some(item => item.id === editing.id) ? 'Editar carteira' : 'Nova carteira' : editing.kind === 'Entrada' ? 'Adicionar saldo' : editing.kind === 'Meta financeira' ? entries.some(item => item.id === editing.id) ? 'Editar cofrinho' : 'Novo cofrinho' : entries.some(item => item.id === editing.id) ? 'Editar lançamento' : editing.kind === 'Conta fixa' ? 'Nova conta fixa' : editing.kind === 'Parcela' ? 'Nova parcela' : editing.kind === 'Limite' ? 'Limite mensal' : 'Novo gasto'}</h1>}
       {error && <p role="alert">{error}</p>}
-      {!isPiggyMovement && (editing.area !== 'Finanças' || editing.kind !== 'Entrada') && <label>{editing.kind === 'Matéria' ? 'Nome da matéria' : editing.kind === 'Tema' ? 'Nome do conteúdo' : editing.kind === 'Conta' ? 'Nome da conta' : editing.kind === 'Meta financeira' ? 'Nome do cofrinho' : 'Título'}<input autoFocus required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>}
+      {!isPiggyMovement && (editing.area !== 'Finanças' || editing.kind !== 'Entrada') && <label>{editing.kind === 'Matéria' ? 'Nome da matéria' : editing.kind === 'Tema' ? 'Nome do conteúdo' : editing.kind === 'Conta' ? 'Nome da carteira' : editing.kind === 'Meta financeira' ? 'Nome do cofrinho' : 'Título'}<input autoFocus required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>}
       {editing.area === 'Estudos' && editing.kind !== 'Matéria' && <SubjectPicker items={subjects} value={editing.parent}
         onChange={parent => setEditing({ ...editing, parent, contentId: parent === editing.parent ? editing.contentId : undefined })} />}
       {editing.parent && (editing.kind === 'Prova' || editing.kind === 'Revisão') && <SubjectPicker label="Conteúdo"
         items={entries.filter(item => item.kind === 'Tema' && item.parent === editing.parent)}
         value={editing.contentId} onChange={contentId => setEditing({ ...editing, contentId })} />}
       {editing.kind === 'Tema' && <label className="check"><input type="checkbox" checked={!!editing.smartReview} onChange={event => setEditing({ ...editing, smartReview: event.target.checked })} /> Programar revisões em 1, 3, 7 e 14 dias</label>}
-      {editing.area === 'Finanças' && !isPiggyMovement && ['Entrada', 'Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && (accounts.length ? <label>Onde<select required value={editing.parent ?? ''} onChange={event => setEditing({ ...editing, parent: event.target.value || undefined })}>
-        <option value="">Selecionar</option>{accounts.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
-      </select></label> : <div className="no-account"><strong>Onde</strong><p>Você ainda não tem uma carteira.</p><button type="button" onClick={() => void createInitialWallet()}>Criar carteira</button></div>)}
+      {editing.area === 'Finanças' && !isPiggyMovement && ['Entrada', 'Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && (accounts.length ? <WalletPicker items={accounts} value={editing.parent} onChange={parent => setEditing({ ...editing, parent })} /> : <div className="no-account"><strong>Onde</strong><p>Você ainda não tem uma carteira.</p><button type="button" onClick={() => void createInitialWallet()}>Criar carteira</button></div>)}
       {!isPiggyMovement && editing.kind === 'Gasto' && <SubjectPicker label="Cofrinho" items={financialGoals} value={editing.goalId} onChange={goalId => setEditing({ ...editing, goalId })} />}
       {editing.area === 'Finanças' && ['Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && !editing.goalId && <CategoryPicker value={editing.category} onChange={category => setEditing({ ...editing, category })} />}
       {editing.kind === 'Parcela' && <label>Número de parcelas<input required type="number" min="2" step="1" value={editing.installments ?? ''} onChange={event => setEditing({ ...editing, installments: event.target.valueAsNumber || undefined })} /></label>}
@@ -832,6 +834,27 @@ function CategoryPicker({ value, onChange }: { value?: string; onChange: (catego
     <button type="button" aria-label="Selecionar categoria" aria-haspopup="dialog" onClick={() => dialog.current?.showModal()}>{value ? <><ExpenseCategoryIcon category={value} /><span>{value}</span></> : 'Selecionar categoria'}</button>
     <dialog ref={dialog} className="date-dialog weekday-dialog" aria-label="Selecionar categoria"><h2>Categoria</h2><div>{expenseCategories.map(category => <button key={category} type="button" className="category-choice" aria-pressed={value === category} onClick={() => choose(category)}><ExpenseCategoryIcon category={category} /><span>{category}</span></button>)}</div><button type="button" onClick={() => dialog.current?.close()}>Cancelar</button></dialog>
   </div>
+}
+
+function WalletPicker({ items, value, onChange }: { items: Entry[]; value?: string; onChange: (id: string) => void }) {
+  const dialog = useRef<HTMLDialogElement>(null)
+  const selected = items.find(item => item.id === value)
+  const choose = (id: string) => { onChange(id); dialog.current?.close() }
+  return <div className="commitment-date wallet-picker">
+    <span>Onde</span>
+    <button type="button" aria-haspopup="dialog" aria-label="Selecionar carteira" onClick={() => dialog.current?.showModal()}>
+      {selected ? <><span className="wallet-option-mark" style={{ backgroundColor: selected.color || walletColors[0] }} aria-hidden="true"><WalletIcon /></span><span>{selected.title}</span></> : <span>Selecionar carteira</span>}
+    </button>
+    <dialog ref={dialog} className="date-dialog weekday-dialog wallet-picker-dialog" aria-label="Selecionar carteira">
+      <h2>Escolher carteira</h2>
+      <div>{items.map((item, index) => <button className="wallet-choice" key={item.id} type="button" aria-pressed={item.id === value} onClick={() => choose(item.id)}><span className="wallet-option-mark" style={{ backgroundColor: item.color || walletColors[index % walletColors.length] }} aria-hidden="true"><WalletIcon /></span><span>{item.title}</span></button>)}</div>
+      <button type="button" onClick={() => dialog.current?.close()}>Cancelar</button>
+    </dialog>
+  </div>
+}
+
+function WalletIcon() {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7V5a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h14a1 1 0 0 1 1 1v2m0 6v2a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V6" /><path d="M16 12h4v4h-4a2 2 0 0 1 0-4Z" /></svg>
 }
 
 function SubjectPicker({ label = 'Matéria', items, value, onChange }: { label?: string; items: Entry[]; value?: string; onChange: (id?: string) => void }) {

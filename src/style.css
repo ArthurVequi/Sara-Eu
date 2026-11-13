@@ -296,6 +296,10 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .weekday-dialog > div button { text-align: left; }
 .category-picker > button, .category-choice { display: flex; align-items: center; justify-content: flex-start; gap: .55rem; }
 .category-choice svg { flex: none; color: var(--forest); }
+.wallet-picker > button, .wallet-choice { display: flex; align-items: center; justify-content: flex-start; gap: .6rem; text-align: left; }
+.wallet-picker .wallet-option-mark { flex: none; }
+.wallet-picker-dialog button { width: 100%; }
+.wallet-picker-dialog .wallet-choice { min-height: 3rem; }
 .subject-picker { max-height: min(32rem, 85dvh); }
 .subject-picker button { overflow-wrap: anywhere; }
 .study-subjects summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; color: var(--forest); font-size: 1.4rem; font-weight: 780; letter-spacing: -.04em; }
