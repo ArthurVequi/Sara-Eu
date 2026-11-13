@@ -248,18 +248,19 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .finance-piggy-bank h4 { display: inline-flex; align-items: center; gap: .4rem; margin: 0; font-size: 1rem; }
 .piggy-icon { display: grid; place-items: center; width: 1.8rem; height: 1.8rem; border-radius: .6rem; color: var(--forest); background: var(--lime); }
 .finance-goals li { padding-block: .3rem; }
-.piggy-list { display: grid; gap: .45rem; margin-top: .45rem; }
+.piggy-list { display: grid; gap: .3rem; margin-top: .35rem; }
 .piggy-list > li { display: block; padding: 0; border: 0; }
-.piggy-goal { display: grid; width: 100%; gap: .4rem; padding: .75rem; text-align: left; }
-.piggy-goal > strong { font-size: .95rem; }
+.piggy-goal { display: grid; width: 100%; gap: .25rem; padding: .55rem .65rem; text-align: left; }
+.piggy-heading { display: flex; min-width: 0; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.piggy-heading > strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; }
 .piggy-saved { display: inline-flex; align-items: baseline; gap: .35rem; }
-.piggy-saved small { display: inline; font-size: .78rem; }
-.piggy-saved strong { font-size: .9rem; font-variant-numeric: tabular-nums; }
-.piggy-progress-row { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: .5rem; }
-.piggy-progress-row > strong { font-size: .82rem; }
-.piggy-target { margin-top: -.05rem; font-size: .78rem; font-variant-numeric: tabular-nums; }
+.piggy-saved small { display: inline; font-size: .7rem; }
+.piggy-saved strong { font-size: .8rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.piggy-progress-row { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: .4rem; }
+.piggy-progress-row > strong { font-size: .75rem; }
+.piggy-target { margin-top: -.05rem; font-size: .7rem; font-variant-numeric: tabular-nums; }
 .goal-progress { display: block; height: .38rem; margin-top: .35rem; overflow: hidden; border-radius: 1rem; background: var(--tint); }
-.piggy-progress-row .goal-progress { width: 100%; margin: 0; height: .55rem; background: var(--border); }
+.piggy-progress-row .goal-progress { width: 100%; margin: 0; height: .45rem; background: var(--border); }
 .goal-progress > span { display: block; height: 100%; border-radius: inherit; background: var(--teal); }
 .no-account { display: grid; gap: .35rem; }
 .no-account p { margin: 0; color: var(--muted); font-size: .9rem; }
