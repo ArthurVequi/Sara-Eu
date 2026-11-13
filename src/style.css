@@ -251,16 +251,21 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .focus-overview h2 { font-size: 1.55rem; letter-spacing: -.045em; }
 .focus-time { color: var(--forest); font-size: clamp(2.15rem, 10vw, 3rem); line-height: .9; letter-spacing: -.075em; font-variant-numeric: tabular-nums; }
 .focus-controls { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, auto); gap: .45rem; align-items: center; }
-.focus-controls select { min-width: 0; min-height: 44px; padding: .55rem; border: 1px solid var(--border); border-radius: .75rem; color: var(--forest); background: var(--tint); font-weight: 650; }
+.focus-subject-picker > button { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; width: 100%; min-width: 0; min-height: 44px; align-items: center; gap: .5rem; padding: .55rem .7rem; border-color: var(--border); color: var(--forest); background: var(--tint); font-weight: 650; text-align: left; }
+.focus-subject-picker > button span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .focus-controls button { min-height: 44px; }
 .focus-controls .primary { color: var(--white); border-color: var(--forest); background: var(--forest); }
-.focus-panel > small { color: var(--muted); }
 body:has(main.focus-active) { background: var(--forest); }
-main.focus-active { min-height: 100dvh; color: var(--white); background: var(--forest); --white: #173b18; --tint: #214b22; --border: #477445; --ink: #ffffff; --muted: #d7e6d0; }
+main.focus-active { min-height: 100dvh; color: #ffffff; background: var(--forest); --white: #173b18; --tint: #214b22; --border: #477445; --ink: #ffffff; --muted: #d7e6d0; }
 main.focus-active .brand { color: var(--lime); }
-main.focus-active .focus-panel { color: var(--white); border-color: var(--lime); background: #173b18; }
+main.focus-active .focus-panel { color: #ffffff; border-color: var(--lime); background: #173b18; }
 main.focus-active .focus-overview p, main.focus-active .focus-time { color: var(--lime); }
-main.focus-active .focus-controls select { color: var(--white); background: var(--tint); }
+main.focus-active .panel { color: #ffffff; }
+main.focus-active :is(h1, h2, h3, h4, strong, summary) { color: #ffffff; }
+main.focus-active :is(.study-deadlines, .study-subjects) .entry { color: #ffffff !important; }
+main.focus-active small { color: var(--muted); }
+main.focus-active .text-action { color: var(--lime); }
+main.focus-active .focus-subject-picker > button { color: #ffffff; background: var(--tint); }
 main.focus-active .focus-controls .primary { color: var(--forest); border-color: var(--lime); background: var(--lime); }
 .finance-goals { margin-top: 1rem; }
 .finance-piggy-bank { padding: .5rem .65rem; border: 1px solid var(--border); border-radius: 1rem; background: var(--tint); }
@@ -296,4 +301,4 @@ main.focus-active .focus-controls .primary { color: var(--forest); border-color:
 .no-account { display: grid; gap: .35rem; }
 .no-account p { margin: 0; color: var(--muted); font-size: .9rem; }
 .no-account button { width: fit-content; }
-@media (max-width: 600px) { .focus-controls { grid-template-columns: repeat(3, minmax(0, 1fr)); } .focus-controls select, .focus-controls .primary { grid-column: 1 / -1; } }
+@media (max-width: 600px) { .focus-controls { grid-template-columns: repeat(3, minmax(0, 1fr)); } .focus-controls .focus-subject-picker, .focus-controls .primary { grid-column: 1 / -1; } }

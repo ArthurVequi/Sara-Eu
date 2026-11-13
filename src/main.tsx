@@ -390,7 +390,7 @@ function App() {
         <div><dt>Gasto</dt><dd aria-label={money.format(current.spent)}>{compactMoney.format(current.spent)}</dd></div>
       </dl></section>
     </div>}
-    {ready && tab === 'Estudos' && <section className="panel focus-panel"><div className="focus-overview"><div><p>Modo de estudo</p><h2>Foco</h2></div><strong className="focus-time" aria-live="polite">{formatFocusTime(focusSeconds)}</strong></div><div className="focus-controls"><select aria-label="Matéria do foco" value={focusSubject} onChange={event => setFocusSubject(event.target.value)}><option value="">Sem matéria vinculada</option>{subjects.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select>{[25, 50].map(minutes => <button key={minutes} type="button" aria-pressed={focusMinutes === minutes} onClick={() => { setFocusMinutes(minutes); setFocusSeconds(minutes * 60); setFocusRunning(false) }}>{minutes} min</button>)}<button className="primary" type="button" onClick={() => { if (!focusRunning && focusSeconds === 0) setFocusSeconds(focusMinutes * 60); setFocusRunning(running => !running) }}>{focusRunning ? 'Pausar' : 'Começar'}</button></div><small>{focusSubject ? `${subjects.find(item => item.id === focusSubject)?.focusMinutes ?? 0} min registrados nesta matéria` : 'Selecione uma matéria para registrar o tempo.'}</small></section>}
+    {ready && tab === 'Estudos' && <section className="panel focus-panel"><div className="focus-overview"><div><p>Modo de estudo</p><h2>Foco</h2></div><strong className="focus-time" aria-live="polite">{formatFocusTime(focusSeconds)}</strong></div><div className="focus-controls"><FocusSubjectPicker items={subjects} value={focusSubject} onChange={setFocusSubject} />{[25, 50].map(minutes => <button key={minutes} type="button" aria-pressed={focusMinutes === minutes} onClick={() => { setFocusMinutes(minutes); setFocusSeconds(minutes * 60); setFocusRunning(false) }}>{minutes} min</button>)}<button className="primary" type="button" onClick={() => { if (!focusRunning && focusSeconds === 0) setFocusSeconds(focusMinutes * 60); setFocusRunning(running => !running) }}>{focusRunning ? 'Pausar' : 'Começar'}</button></div></section>}
     {ready && tab === 'Estudos' && <details className="panel study-deadlines" open>
       <summary>Próximos prazos</summary>
       {studyDeadlines.length ? <ul>{studyDeadlines.map(entry => <li key={entry.id}>
@@ -710,6 +710,23 @@ function SubjectPicker({ label = 'Matéria', items, value, onChange }: { label?:
       <div>{items.map(item => <button key={item.id} type="button" aria-pressed={item.id === value} onClick={() => choose(item.id)}>{item.title}</button>)}
         <button type="button" aria-pressed={!value} onClick={() => choose()}>{`Sem ${label.toLowerCase()} vinculada`}</button>
       </div>
+      <button type="button" onClick={() => dialog.current?.close()}>Cancelar</button>
+    </dialog>
+  </div>
+}
+
+function FocusSubjectPicker({ items, value, onChange }: { items: Entry[]; value?: string; onChange: (id: string) => void }) {
+  const dialog = useRef<HTMLDialogElement>(null)
+  const choose = (id: string) => { onChange(id); dialog.current?.close() }
+  const selected = items.find(item => item.id === value)
+  return <div className="focus-subject-picker">
+    <button type="button" aria-label="Selecionar matéria do foco" aria-haspopup="dialog" onClick={() => dialog.current?.showModal()}>
+      <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 10 9-5 9 5-9 5zM7 12v5c0 1.5 2.2 3 5 3s5-1.5 5-3v-5" /></svg>
+      <span>{selected?.title ?? 'Escolher matéria'}</span><span aria-hidden="true">⌄</span>
+    </button>
+    <dialog ref={dialog} className="date-dialog weekday-dialog subject-picker" aria-label="Selecionar matéria do foco">
+      <h2>Matéria do foco</h2>
+      <div>{items.map(item => <button key={item.id} type="button" aria-pressed={item.id === value} onClick={() => choose(item.id)}>{item.title}</button>)}</div>
       <button type="button" onClick={() => dialog.current?.close()}>Cancelar</button>
     </dialog>
   </div>
