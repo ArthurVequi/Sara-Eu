@@ -59,12 +59,13 @@ select { font: inherit; }
 .finance-categories .toolbar { margin-bottom: .3rem; }
 .finance-categories h3 { margin: 0; font-size: 1rem; }
 .finance-categories .toolbar small { text-transform: capitalize; }
-.finance-categories ul { display: grid; gap: .35rem; margin: 0; }
-.finance-categories li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(7rem, .85fr); gap: .6rem; align-items: center; padding: .2rem 0; border: 0; }
+.finance-categories ul { display: grid; gap: .45rem; margin: 0; }
+.finance-categories li { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: .3rem .6rem; align-items: center; padding: .5rem .6rem; border: 1px solid var(--border); border-radius: .75rem; background: var(--tint); }
 .finance-categories li > span { display: flex; min-width: 0; align-items: center; gap: .4rem; font-size: .88rem; }
 .finance-categories li > span svg { flex: none; color: var(--forest); }
-.finance-categories li > div { display: grid; gap: .2rem; justify-items: end; }
-.finance-categories li > div > strong { font-size: .78rem; font-variant-numeric: tabular-nums; }
+.finance-categories li > div { display: contents; }
+.finance-categories li > div > strong { grid-column: 2; font-size: .78rem; font-variant-numeric: tabular-nums; }
+.finance-categories .category-bar { grid-column: 1 / -1; }
 .category-bar { display: block; width: 100%; height: .4rem; overflow: hidden; border-radius: 2rem; background: var(--border); }
 .category-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--teal); }
 .finance-wallets { margin: .65rem 0 1rem; }
