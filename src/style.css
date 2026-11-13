@@ -136,6 +136,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 @media (max-width: 600px) {
   main { --page-gutter: .65rem; padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
   main > header { margin-inline: 0; }
+  .app-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .app-header-actions { display: contents; }
+  .app-header .badge { grid-column: 1 / -1; grid-row: 2; width: fit-content; margin-top: .1rem; }
+  .app-header .settings-button { grid-column: 2; grid-row: 1; }
   main > .panel { margin-inline: 0; padding-inline: clamp(.9rem, 3vw, 1.35rem); border-radius: 1.25rem; }
   .dashboard {
     grid-template-columns: minmax(0, 1fr);
