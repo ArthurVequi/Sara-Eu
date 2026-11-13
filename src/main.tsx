@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode, type TouchEvent } from 'react'
 import { createRoot } from 'react-dom/client'
+import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { cloud, enableDeviceNotifications, enableMorningPush } from './cloud'
 import './style.css'
 import { SplashScreen } from './SplashScreen'
@@ -116,6 +117,7 @@ const weekDayLabel = new Intl.DateTimeFormat('pt-BR', {
 
 function App() {
   const [tab, setTab] = useState<Area | 'Início'>(linkedDay ? 'Semana' : 'Início')
+  const [tabDirection, setTabDirection] = useState(1)
   const [entries, setEntries] = useState<Entry[]>([])
   const [ready, setReady] = useState(false)
   const [error, setError] = useState('')
@@ -448,6 +450,8 @@ function App() {
   }
 
   function navigate(area: typeof tab) {
+    const tabs: (typeof tab)[] = ['Início', 'Semana', 'Estudos', 'Finanças']
+    setTabDirection(tabs.indexOf(area) >= tabs.indexOf(tab) ? 1 : -1)
     setTab(area)
     setStudyActionsOpen(false)
     setFinanceActionsOpen(false)
@@ -503,6 +507,10 @@ function App() {
         {area === 'Início' ? 'Meu dia' : area}
       </button>)}
     </nav>
+    <AnimatePresence initial={false} mode="wait" custom={tabDirection}>
+    <motion.div key={tab} custom={tabDirection}
+      variants={{ enter: (direction: number) => ({ opacity: 0, x: direction * 24 }), center: { opacity: 1, x: 0 }, exit: (direction: number) => ({ opacity: 0, x: direction * -24 }) }}
+      initial="enter" animate="center" exit="exit" transition={{ duration: .22, ease: [0.22, 1, 0.36, 1] }}>
     <section className="hero">
       {tab === 'Início' && <p className="hero-date">{new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full', timeZone: 'UTC' }).format(new Date(today))}</p>}
       <h1>{tab === 'Início' ? 'Olá, Sara!' : tab === 'Semana' ? 'Minha semana' : tab}</h1>
@@ -631,6 +639,8 @@ function App() {
       }))}
       {tab === 'Finanças' && <section className="finance-categories"><div className="toolbar"><h3>Gastos por categoria</h3><small>{new Intl.DateTimeFormat('pt-BR', { month: 'short', timeZone: 'UTC' }).format(new Date(`${month}-01T00:00:00Z`))}</small></div>{monthlyCategories.length ? <ul>{monthlyCategories.map(item => <li key={item.category}><span><ExpenseCategoryIcon category={item.category} size={16} /><strong>{item.category}</strong></span><div><strong>{money.format(item.amount)}</strong><span className="category-bar"><span style={{ width: `${item.amount / monthlyCategories[0].amount * 100}%` }} /></span></div></li>)}</ul> : <p className="empty-state">Nenhum gasto categorizado neste mês.</p>}</section>}
     </section>}
+    </motion.div>
+    </AnimatePresence>
     {ready && tab === 'Estudos' && !editing && <div className="study-actions">
       <div id="study-create-options" hidden={!studyActionsOpen}>
         {(['Matéria', 'Tema', 'Prova', 'Revisão'] as const).map(kind => <button key={kind} type="button" onClick={() => {
@@ -794,8 +804,10 @@ function ItemEditor({ modal, onCancel, children }: { modal: boolean; onCancel: (
     }
   }, [modal])
   if (!modal) return children
-  return <dialog ref={dialog} className="study-editor-dialog" aria-labelledby="item-editor-title"
-    onCancel={event => { event.preventDefault(); onCancel() }}>{children}</dialog>
+  return <motion.dialog ref={dialog} className="study-editor-dialog" aria-labelledby="item-editor-title"
+    initial={{ opacity: 0, y: 20, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+    transition={{ duration: .25, ease: [0.22, 1, 0.36, 1] }}
+    onCancel={event => { event.preventDefault(); onCancel() }}>{children}</motion.dialog>
 }
 
 function ExpenseCategoryIcon({ category, kind, size = 18 }: { category?: string; kind?: Kind; size?: number }) {
@@ -994,4 +1006,4 @@ function changes(a: Entry[], b: Entry[]) {
   </li>)}</ul> : <p>Nenhum item diferente nesta versão.</p>
 }
 
-createRoot(document.getElementById('root')!).render(<SplashScreen><App /></SplashScreen>)
+createRoot(document.getElementById('root')!).render(<MotionConfig reducedMotion="user"><SplashScreen><App /></SplashScreen></MotionConfig>)
