@@ -83,6 +83,8 @@ function App() {
   const [financeActionsOpen, setFinanceActionsOpen] = useState(false)
   const [financeActionGroup, setFinanceActionGroup] = useState<keyof typeof financeActionGroups>()
   const [selectedWallet, setSelectedWallet] = useState('all')
+  const [activePiggyBank, setActivePiggyBank] = useState<Entry>()
+  const [piggyMenu, setPiggyMenu] = useState<string>()
   const [deadlineMessage, setDeadlineMessage] = useState(-1)
   const [theme, setTheme] = useState('')
   const [day, setDay] = useState(linkedDay && /^\d{4}-\d{2}-\d{2}$/.test(linkedDay) ? linkedDay : today)
@@ -204,6 +206,10 @@ function App() {
       setError('Escolha uma data antes de salvar.')
       return
     }
+    if (editing.kind === 'Gasto' && editing.goalId && (editing.amount ?? 0) > piggyBalance(editing.goalId)) {
+      setError('O valor para retirar é maior que o saldo do cofrinho.')
+      return
+    }
     try {
       const next = { ...editing, title: editing.title.trim() }
       await db.transaction('rw', db.entries, async () => {
@@ -317,6 +323,15 @@ function App() {
     const spent = activity.filter(item => item.kind === 'Gasto').reduce((sum, item) => sum + (item.amount ?? 0), 0)
     const reserved = activity.filter(item => isReserved(item, selectedMonth)).reduce((sum, item) => sum + (item.amount ?? 0), 0)
     return { available: walletBalance(account), reserved, spent }
+  }
+
+  function piggyBalance(goalId: string) {
+    return entries.filter(item => item.goalId === goalId).reduce((sum, item) => sum + (item.kind === 'Gasto' ? -(item.amount ?? 0) : item.amount ?? 0), 0)
+  }
+
+  function openPiggyMovement(goal: Entry, kind: 'Entrada' | 'Gasto') {
+    setActivePiggyBank(undefined)
+    setEditing({ id: crypto.randomUUID(), title: kind === 'Entrada' ? `Adicionar ao cofrinho ${goal.title}` : `Retirar do cofrinho ${goal.title}`, detail: '', area: 'Finanças', kind, goalId: goal.id, date: today, parent: selectedAccount?.id ?? accounts[0]?.id })
   }
 
   function navigate(area: typeof tab) {
@@ -474,9 +489,9 @@ function App() {
             <div className="toolbar"><h4><span className="piggy-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M15 10c0-.55.45-1 1-1s1 .45 1 1s-.45 1-1 1s-1-.45-1-1M8 9h5V7H8zm14-1.5v6.97l-2.82.94L17.5 21H12v-2h-2v2H4.5S2 12.54 2 9.5S4.46 4 7.5 4h5c.91-1.21 2.36-2 4-2a1.498 1.498 0 0 1 1.38 2.08c-.14.34-.26.73-.32 1.15l2.27 2.27zm-2 2h-1L15.5 6c0-.65.09-1.29.26-1.91c-.97.25-1.76.97-2.09 1.91H7.5C5.57 6 4 7.57 4 9.5c0 1.88 1.22 6.65 2 9.5h2v-2h6v2h2l1.56-5.15l2.44-.82z" /></svg></span>Cofrinho</h4><button type="button" className="text-action" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: 'Finanças', kind: 'Meta financeira' })}>Novo</button></div>
           </section>
           {financialGoals.length > 0 && <ul className="piggy-list">{financialGoals.map(goal => {
-            const saved = entries.filter(item => item.kind === 'Entrada' && item.goalId === goal.id).reduce((sum, item) => sum + (item.amount ?? 0), 0)
+            const saved = piggyBalance(goal.id)
             const progress = goal.amount ? Math.min(100, saved / goal.amount * 100) : 0
-            return <li key={goal.id}><button type="button" className="piggy-goal" onClick={() => setEditing(goal)}><span className="piggy-heading"><strong>{goal.title}</strong><span className="piggy-saved"><small>Separado</small><strong>{money.format(saved)}</strong></span></span><span className="piggy-progress-row"><strong>{Math.round(progress)}%</strong><span className="goal-progress" aria-label={`${Math.round(progress)}% concluída`}><span style={{ width: `${progress}%` }} /></span></span><small className="piggy-target">Meta: {money.format(goal.amount ?? 0)}</small></button></li>
+            return <li className="piggy-goal" key={goal.id}><button type="button" className="piggy-open" onClick={() => setActivePiggyBank(goal)}><span className="piggy-heading"><strong>{goal.title}</strong><span className="piggy-saved"><small>Separado</small><strong>{money.format(saved)}</strong></span></span><span className="piggy-progress-row"><strong>{Math.round(progress)}%</strong><span className="goal-progress" aria-label={`${Math.round(progress)}% concluída`}><span style={{ width: `${progress}%` }} /></span></span><small className="piggy-target">Meta: {money.format(goal.amount ?? 0)}</small></button><div className="piggy-menu"><button type="button" className="piggy-more" aria-label={`Opções de ${goal.title}`} aria-expanded={piggyMenu === goal.id} onClick={() => setPiggyMenu(current => current === goal.id ? undefined : goal.id)}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" /></svg></button>{piggyMenu === goal.id && <div className="piggy-menu-options" role="menu"><button type="button" role="menuitem" onClick={() => { setPiggyMenu(undefined); setEditing(goal) }}>Editar</button><button type="button" role="menuitem" onClick={() => { setPiggyMenu(undefined); void remove(goal) }}>Apagar</button></div>}</div></li>
           })}</ul>}
         </section>
         <div className="toolbar finance-month-controls" role="group" aria-label="Navegação por mês">
@@ -549,6 +564,7 @@ function App() {
         <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg>
       </button>
     </div>}
+    {activePiggyBank && <ItemEditor modal onCancel={() => setActivePiggyBank(undefined)}><section className="panel piggy-movement" aria-label="Movimentar cofrinho"><h1 id="item-editor-title">{activePiggyBank.title}</h1><p>Separado: <strong>{money.format(piggyBalance(activePiggyBank.id))}</strong></p><div><button type="button" className="primary" onClick={() => openPiggyMovement(activePiggyBank, 'Entrada')}>Adicionar dinheiro</button><button type="button" onClick={() => openPiggyMovement(activePiggyBank, 'Gasto')}>Retirar dinheiro</button></div><button type="button" onClick={() => setActivePiggyBank(undefined)}>Cancelar</button></section></ItemEditor>}
     {editing && <ItemEditor key={editing.id} modal onCancel={() => { setEditing(undefined); setError('') }}>
       <section className={fullEditor ? 'panel commitment-editor' : 'panel'} aria-label="Editar item"><form onSubmit={save}>
       {editing.area === 'Semana' && <h1 id="item-editor-title">{editing.kind === 'Hábito' ? entries.some(item => item.id === editing.id) ? 'Editar hábito' : 'Novo hábito' : entries.some(item => item.id === editing.id) ? 'Editar compromisso' : 'Novo compromisso'}</h1>}
@@ -565,8 +581,8 @@ function App() {
       {editing.area === 'Finanças' && ['Entrada', 'Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && (accounts.length ? <label>Onde<select required value={editing.parent ?? ''} onChange={event => setEditing({ ...editing, parent: event.target.value || undefined })}>
         <option value="">Selecionar</option>{accounts.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
       </select></label> : <div className="no-account"><strong>Onde</strong><p>Você ainda não tem uma carteira.</p><button type="button" onClick={() => void createInitialWallet()}>Criar carteira</button></div>)}
-      {editing.kind === 'Entrada' && <SubjectPicker label="Cofrinho" items={financialGoals} value={editing.goalId} onChange={goalId => setEditing({ ...editing, goalId })} />}
-      {editing.area === 'Finanças' && ['Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && <label>Categoria<input value={editing.category ?? ''} onChange={event => setEditing({ ...editing, category: event.target.value })} /></label>}
+      {['Entrada', 'Gasto'].includes(editing.kind ?? '') && <SubjectPicker label="Cofrinho" items={financialGoals} value={editing.goalId} onChange={goalId => setEditing({ ...editing, goalId })} />}
+      {editing.area === 'Finanças' && ['Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && !editing.goalId && <label>Categoria<input value={editing.category ?? ''} onChange={event => setEditing({ ...editing, category: event.target.value })} /></label>}
       {editing.kind === 'Parcela' && <label>Número de parcelas<input required type="number" min="2" step="1" value={editing.installments ?? ''} onChange={event => setEditing({ ...editing, installments: event.target.valueAsNumber || undefined })} /></label>}
       {editing.area !== 'Semana' && editing.area !== 'Finanças' && <label>{editing.area === 'Estudos' ? 'Descrição (opcional)' : 'Detalhes'}<input value={editing.detail} onChange={event => setEditing({ ...editing, detail: event.target.value })} /></label>}
       {editing.kind === 'Matéria' && <SubjectWeekday value={editing.weekday} onChange={weekday => setEditing({ ...editing, weekday })} />}
@@ -586,7 +602,7 @@ function App() {
       {editing.kind === 'Revisão' && <label className="check"><input type="checkbox" checked={!!editing.done} onChange={event => setEditing({ ...editing, done: event.target.checked })} /> Revisão concluída</label>}
       <div className="toolbar">
         <button type="button" onClick={() => { setEditing(undefined); setError('') }}>Cancelar</button>
-        {entries.some(entry => entry.id === editing.id) && <button type="button" onClick={() => void remove(editing)}>Excluir</button>}
+        {entries.some(entry => entry.id === editing.id) && editing.kind !== 'Meta financeira' && <button type="button" onClick={() => void remove(editing)}>Excluir</button>}
         <button className="primary">Salvar</button>
       </div>
     </form></section></ItemEditor>}

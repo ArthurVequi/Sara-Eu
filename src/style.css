@@ -250,7 +250,8 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .finance-goals li { padding-block: .3rem; }
 .piggy-list { display: grid; gap: .3rem; margin-top: .35rem; }
 .piggy-list > li { display: block; padding: 0; border: 0; }
-.piggy-goal { display: grid; width: 100%; gap: .25rem; padding: .55rem .65rem; text-align: left; }
+.piggy-goal { position: relative; }
+.piggy-open { display: grid; width: 100%; gap: .25rem; padding: .55rem 2.65rem .55rem .65rem; text-align: left; }
 .piggy-heading { display: flex; min-width: 0; align-items: baseline; justify-content: space-between; gap: .5rem; }
 .piggy-heading > strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; }
 .piggy-saved { display: inline-flex; align-items: baseline; gap: .35rem; }
@@ -262,6 +263,14 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .goal-progress { display: block; height: .38rem; margin-top: .35rem; overflow: hidden; border-radius: 1rem; background: var(--tint); }
 .piggy-progress-row .goal-progress { width: 100%; margin: 0; height: .45rem; background: var(--border); }
 .goal-progress > span { display: block; height: 100%; border-radius: inherit; background: var(--teal); }
+.piggy-menu { position: absolute; z-index: 2; top: .35rem; right: .35rem; }
+.piggy-more { display: grid; width: 2rem; min-height: 2rem; padding: 0; place-items: center; border: 0; background: transparent; color: var(--forest); }
+.piggy-menu-options { position: absolute; z-index: 3; top: 2.25rem; right: 0; display: grid; min-width: 6.5rem; padding: .25rem; border: 1px solid var(--border); border-radius: .75rem; background: var(--white); box-shadow: 0 .4rem 1.2rem #112c0f1f; }
+.piggy-menu-options button { min-height: 2.25rem; border: 0; text-align: left; }
+.piggy-menu-options button:last-child { color: #9c2620; }
+.piggy-movement { display: grid; gap: .75rem; }
+.piggy-movement p { margin: 0; color: var(--muted); }
+.piggy-movement > div { display: grid; gap: .45rem; }
 .no-account { display: grid; gap: .35rem; }
 .no-account p { margin: 0; color: var(--muted); font-size: .9rem; }
 .no-account button { width: fit-content; }
