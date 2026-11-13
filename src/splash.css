@@ -4,29 +4,33 @@
   z-index: 100;
   display: grid;
   place-items: center;
-  overflow: clip;
+  overflow: hidden;
   background: var(--forest);
-  color: var(--white);
+  color: #fff;
 }
 
 .splash-brand {
-  display: flex;
-  align-items: center;
-  gap: clamp(.2rem, 1.5vw, .75rem);
+  display: grid;
+  justify-items: center;
+  gap: .85rem;
   white-space: nowrap;
-  font-size: clamp(1.35rem, 7.5vw, 3.5rem);
-  font-weight: 750;
+  font-size: clamp(1.75rem, 7vw, 3rem);
   letter-spacing: -.04em;
+  line-height: 1.1;
 }
 
 .splash-icon {
   display: block;
-  width: clamp(2.8rem, 15vw, 5.5rem);
-  aspect-ratio: 1;
+  width: clamp(3.5rem, 15vw, 5rem);
+  color: var(--lime);
 }
 
-.splash-icon, .splash-name { opacity: 0; }
+.splash-name-window {
+  overflow: hidden;
+  padding-bottom: .12em;
+}
 
 .splash-name {
+  display: block;
   font-weight: 800;
 }
