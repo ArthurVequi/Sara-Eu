@@ -394,9 +394,9 @@ function App() {
     </details>}
     {ready && tab !== 'Início' && <section className="panel">
       {tab !== 'Estudos' && <>
-      <div className="toolbar"><h2>{tab === 'Semana' ? 'Calendário' : 'Lançamentos em pesos argentinos'}</h2>
-        {tab === 'Semana' && <button hidden={!!editing} className="primary calendar-add" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: tab, date: day })}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg> Novo compromisso</button>}
-      </div>
+      {tab === 'Semana' && <div className="toolbar"><h2>Calendário</h2>
+        <button hidden={!!editing} className="primary calendar-add" onClick={() => setEditing({ id: crypto.randomUUID(), title: '', detail: '', area: tab, date: day })}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-7-7v14" /></svg> Novo compromisso</button>
+      </div>}
       </>}
       {tab === 'Semana' && <>
         <div className="toolbar week-controls" role="group" aria-label="Navegação por mês">
