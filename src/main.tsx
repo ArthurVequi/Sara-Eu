@@ -305,7 +305,7 @@ function App() {
       <span className="finance-entry-icon" aria-hidden="true"><ExpenseCategoryIcon category={entry.category} kind={entry.kind} /></span>
       <button className="entry finance-entry" onClick={() => setEditing(entry)}>
         <strong>{entry.title}</strong>
-        <small>{entry.kind ?? 'Gasto'}</small>
+        <small>{entry.kind === 'Parcela' ? `Parcela · ${installmentPosition(entry, month)}/${entry.installments ?? 1}` : entry.kind ?? 'Gasto'}</small>
       </button>
       <span className="finance-entry-value"><strong>{money.format(entry.kind === 'Conta'
         ? (entry.amount ?? 0) + entries.filter(item => item.kind === 'Entrada' && item.parent === entry.id && item.date?.startsWith(month)).reduce((sum, item) => sum + (item.amount ?? 0), 0)
@@ -511,7 +511,7 @@ function App() {
       </>}
       {tab === 'Finanças' && financeList(entries.filter(item => {
         if (item.area !== tab) return false
-        const included = (item.kind === 'Entrada' && item.date?.startsWith(month)) || (expenses.includes(item) && (!item.paymentFor || !planned.some(plan => plan.id === item.paymentFor))) || planned.includes(item) || (item.kind === 'Limite' && item.date?.startsWith(month))
+        const included = (item.kind === 'Entrada' && item.date?.startsWith(month)) || (expenses.includes(item) && (!item.paymentFor || !planned.some(plan => plan.id === item.paymentFor))) || planned.includes(item)
         return included && (selectedWallet === 'all' || item.parent === selectedWallet)
       }))}
     </section>}
@@ -782,6 +782,13 @@ function financeSummary(entries: Entry[], month: string) {
 
 function paymentId(entryId: string, month: string) {
   return `payment:${entryId}:${month}`
+}
+
+function installmentPosition(entry: Entry, month: string) {
+  if (!entry.date) return 1
+  const [year, number] = month.split('-').map(Number)
+  const [startYear, startNumber] = entry.date.split('-').map(Number)
+  return Math.min(Math.max((year - startYear) * 12 + number - startNumber + 1, 1), entry.installments ?? 1)
 }
 
 function habitStreak(days: string[] = []) {
