@@ -476,7 +476,7 @@ function App() {
           {financialGoals.length > 0 && <ul className="piggy-list">{financialGoals.map(goal => {
             const saved = entries.filter(item => item.kind === 'Entrada' && item.goalId === goal.id).reduce((sum, item) => sum + (item.amount ?? 0), 0)
             const progress = goal.amount ? Math.min(100, saved / goal.amount * 100) : 0
-            return <li key={goal.id}><button type="button" className="piggy-goal" onClick={() => setEditing(goal)}><strong>{goal.title}</strong><span className="piggy-amounts"><span>Separado: {money.format(saved)}</span><span>Meta: {money.format(goal.amount ?? 0)}</span></span><span className="piggy-progress-row"><strong>{Math.round(progress)}%</strong><span className="goal-progress" aria-label={`${Math.round(progress)}% concluída`}><span style={{ width: `${progress}%` }} /></span></span></button></li>
+            return <li key={goal.id}><button type="button" className="piggy-goal" onClick={() => setEditing(goal)}><strong>{goal.title}</strong><span className="piggy-saved"><small>Separado</small><strong>{money.format(saved)}</strong></span><span className="piggy-progress-row"><strong>{Math.round(progress)}%</strong><span className="goal-progress" aria-label={`${Math.round(progress)}% concluída`}><span style={{ width: `${progress}%` }} /></span></span><small className="piggy-target">Meta: {money.format(goal.amount ?? 0)}</small></button></li>
           })}</ul>}
         </section>
         <div className="toolbar finance-month-controls" role="group" aria-label="Navegação por mês">
