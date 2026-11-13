@@ -135,6 +135,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   main { --page-gutter: 0px; padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
   main > header { margin-inline: 1rem; }
   main > .panel { margin-inline: 0; padding-inline: clamp(.9rem, 3vw, 1.35rem); border: 0; border-radius: 0; box-shadow: none; }
+  .hero, .dashboard .panel, .dashboard-money > div, .dashboard-today .empty-state, .app-nav { border-radius: 0; }
   .dashboard {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "today" "studies" "finance";
