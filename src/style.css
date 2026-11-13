@@ -134,7 +134,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 @media (max-width: 600px) {
   main { --page-gutter: .65rem; padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
   main > header { margin-inline: 0; }
-  main > .panel { margin-inline: 0; padding-inline: clamp(.9rem, 3vw, 1.35rem); border: 0; border-radius: 0; box-shadow: none; }
+  main > .panel { margin-inline: 0; padding-inline: clamp(.9rem, 3vw, 1.35rem); border-radius: 1.25rem; }
   .dashboard {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "today" "studies" "finance";
