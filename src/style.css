@@ -243,11 +243,10 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .focus-controls select { min-width: 0; min-height: 44px; padding: .55rem; border: 1px solid var(--border); border-radius: .75rem; background: var(--white); }
 .focus-controls button { min-height: 44px; }
 .finance-goals { margin-top: 1rem; }
-.finance-piggy-bank { padding: .75rem; border: 1px solid var(--border); border-radius: 1rem; background: var(--tint); }
+.finance-piggy-bank { padding: .5rem .65rem; border: 1px solid var(--border); border-radius: 1rem; background: var(--tint); }
 .finance-piggy-bank .toolbar { margin: 0; color: var(--forest); }
 .finance-piggy-bank h4 { display: inline-flex; align-items: center; gap: .4rem; margin: 0; font-size: 1rem; }
 .piggy-icon { display: grid; place-items: center; width: 1.8rem; height: 1.8rem; border-radius: .6rem; color: var(--forest); background: var(--lime); }
-.finance-piggy-bank > p { margin: .45rem 0 .3rem; color: var(--muted); font-size: .82rem; }
 .finance-goals li { padding-block: .3rem; }
 .goal-progress { display: block; height: .38rem; margin-top: .35rem; overflow: hidden; border-radius: 1rem; background: var(--tint); }
 .goal-progress > span { display: block; height: 100%; border-radius: inherit; background: var(--teal); }
