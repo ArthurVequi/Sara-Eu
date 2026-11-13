@@ -198,11 +198,13 @@ function App() {
         const { data, error } = await cloud!.from('organiza_workspace').select('version, entries').eq('id', 1).single()
         if (error) throw error
         const remote = data as Snapshot
+        const seedNeeded = !remote.entries.some(entry => entry.id === 'sim-wallet-daily')
+        const remoteEntries = seedNeeded ? [...remote.entries, ...examples, ...simulationEntries] : remote.entries
         if (choice && remote.version !== conflict?.version) {
           setConflict(remote)
           return
         }
-        const merged = mergeEntries(base?.entries ?? [], local, remote.entries, choice)
+        const merged = mergeEntries(base?.entries ?? [], local, remoteEntries, choice)
         if (!merged) {
           setConflict(remote)
           return
@@ -222,6 +224,7 @@ function App() {
           await db.entries.clear()
           await db.entries.bulkPut(updated)
           await db.settings.put({ id: 'cloud', snapshot: next })
+          if (seedNeeded) await db.settings.put({ id: 'simulation-v1' })
         })
         await refresh()
         setConflict(undefined)
