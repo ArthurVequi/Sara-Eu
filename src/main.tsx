@@ -142,7 +142,7 @@ function App() {
   const [focusMinutes, setFocusMinutes] = useState(25)
   const [focusSeconds, setFocusSeconds] = useState(25 * 60)
   const [focusRunning, setFocusRunning] = useState(false)
-  const swipeStart = useRef<{ x: number; y: number }>()
+  const swipeStart = useRef<{ x: number; y: number } | null>(null)
   const [focusSubject, setFocusSubject] = useState('')
   const accounts = entries.filter(entry => entry.kind === 'Conta')
   const subjects = entries.filter(entry => entry.kind === 'Matéria')
@@ -468,7 +468,7 @@ function App() {
 
   function finishTabSwipe(event: TouchEvent<HTMLElement>) {
     const start = swipeStart.current
-    swipeStart.current = undefined
+    swipeStart.current = null
     if (!start || editing || settingsOpen || progressOpen || weeklySummaryOpen || activePiggyBank) return
     const touch = event.changedTouches[0]
     const deltaX = touch.clientX - start.x
