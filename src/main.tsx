@@ -326,7 +326,7 @@ function App() {
   function list(items: Entry[], empty = 'Nenhum item por aqui.', className = '') {
     const ordered = [...items].sort((a, b) =>
       (a.startTime || '24:00').localeCompare(b.startTime || '24:00'))
-    return ordered.length ? <ul className={className}>{ordered.map(entry => <li key={entry.id}>
+    return ordered.length ? <ul className={className}>{ordered.map(entry => <li className={entry.done ? 'is-done' : ''} key={entry.id}>
       {entry.area === 'Semana' && !entry.weekly && <input type="checkbox" checked={!!entry.done} aria-label={`Concluir ${entry.title}`} onChange={() => void toggle(entry)} />}
       <button className="entry" onClick={() => setEditing(entry)}>
         <strong>{entry.title}</strong>

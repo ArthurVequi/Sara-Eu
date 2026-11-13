@@ -28,6 +28,8 @@ h2 { font-size: 1.1rem; }
 .panel { background: var(--white); border: 1px solid var(--border); padding: 1rem; border-radius: 1rem; margin-bottom: .75rem; }
 ul { padding: 0; margin: .65rem 0 0; list-style: none; }
 li { display: flex; gap: .5rem; align-items: center; border-top: 1px solid var(--border); }
+.is-done > .entry { opacity: .52; }
+.is-done > .entry strong { text-decoration: line-through; }
 .entry { text-align: left; flex: 1; min-width: 0; border: 0; overflow-wrap: anywhere; }
 small { display: block; color: var(--muted); }
 form { display: grid; gap: .75rem; }
