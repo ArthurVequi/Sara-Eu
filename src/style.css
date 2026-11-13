@@ -241,17 +241,20 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .subject-card-title { display: grid; min-width: 0; gap: .12rem; }
 .subject-card-title strong, .subject-card-title small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .subject-card-title small { font-size: .76rem; }
-.subject-content { padding: .5rem .65rem .75rem; border-top: 1px solid var(--border); background: var(--white); }
-.subject-card-actions { display: flex; justify-content: flex-end; gap: .35rem; margin-bottom: .35rem; }
+.subject-content { padding: .4rem .65rem .55rem; border-top: 1px solid var(--border); background: var(--white); }
+.subject-card-actions { display: flex; justify-content: flex-end; gap: .35rem; margin-bottom: .2rem; }
 .subject-card-actions button { min-height: 2rem; padding: .25rem .5rem; border: 0; color: var(--muted); font-size: .78rem; }
 .subject-card-actions button:last-child { color: #a12f28; }
 .subject-content > label, .subject-content > .panel { margin-top: .65rem; }
-.content-group { margin-top: .7rem; }
-.content-group > h3 { margin: 0 0 .4rem; color: var(--muted); font-size: .76rem; }
-.content-list { display: grid; gap: .4rem; margin: 0; }
+.content-group { margin-top: .45rem; }
+.content-group > h3 { margin: 0 0 .25rem; color: var(--muted); font-size: .76rem; }
+.content-list { display: grid; gap: .3rem; margin: 0; }
 .content-list > li { display: block; overflow: hidden; border: 1px solid var(--border); border-radius: .7rem; background: var(--tint); }
 .content-list .subject-row { min-height: 2.8rem; padding: .15rem .25rem; }
-.content-list .subject-content { padding: .45rem .6rem .6rem; background: var(--white); }
+.content-list .subject-content { padding: .3rem .6rem .4rem; background: var(--white); }
+.content-list .subject-content p { margin: .3rem 0; }
+.content-list .subject-content > ul { margin: .3rem 0 0; }
+.content-list .subject-content > ul .entry { min-height: 2.6rem; padding-block: .25rem; }
 .content-activities > ul { margin: 0; border: 1px solid var(--border); border-radius: .7rem; overflow: hidden; }
 .content-activities > ul > li { padding-inline: .2rem; }
 .weekday-dialog > div { display: grid; gap: .3rem; margin-top: .65rem; }
