@@ -228,12 +228,23 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .subject-list > li { display: block; }
 .subject-list > li:first-child { border-top: 0; }
 .subject-toggle { display: flex; align-items: center; gap: .45rem; width: 100%; }
-.subject-toggle svg { width: .85rem; height: .85rem; flex: none; transition: transform .18s ease; }
-.subject-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.subject-toggle > svg { width: .85rem; height: .85rem; flex: none; transition: transform .18s ease; }
+.subject-toggle[aria-expanded="true"] > svg { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .subject-toggle svg { transition: none; } }
 .subject-row { display: flex; align-items: center; gap: 0; }
 .subject-edit { display: grid; place-items: center; width: 36px; padding-inline: 0; flex: none; border: 0; color: var(--forest); }
-.subject-content { padding: .25rem .5rem .75rem; }
+.study-subject-card { overflow: hidden; border: 1px solid var(--border); border-radius: .9rem; background: var(--tint); }
+.subject-card-trigger { min-height: 4.25rem; padding: .65rem; background: transparent; }
+.subject-card-trigger > svg:last-child { margin-left: auto; }
+.subject-mark { display: grid; width: 2.35rem; height: 2.35rem; flex: none; place-items: center; border-radius: .7rem; color: var(--forest); background: var(--lime); }
+.subject-mark svg { width: 1.2rem; height: 1.2rem; }
+.subject-card-title { display: grid; min-width: 0; gap: .12rem; }
+.subject-card-title strong, .subject-card-title small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subject-card-title small { font-size: .76rem; }
+.subject-content { padding: .5rem .65rem .75rem; border-top: 1px solid var(--border); background: var(--white); }
+.subject-card-actions { display: flex; justify-content: flex-end; gap: .35rem; margin-bottom: .35rem; }
+.subject-card-actions button { min-height: 2rem; padding: .25rem .5rem; border: 0; color: var(--muted); font-size: .78rem; }
+.subject-card-actions button:last-child { color: #a12f28; }
 .subject-content > label, .subject-content > .panel { margin-top: .65rem; }
 .weekday-dialog > div { display: grid; gap: .3rem; margin-top: .65rem; }
 .weekday-dialog > div button { text-align: left; }
@@ -241,10 +252,8 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .category-choice svg { flex: none; color: var(--forest); }
 .subject-picker { max-height: min(32rem, 85dvh); }
 .subject-picker button { overflow-wrap: anywhere; }
-.study-deadlines summary, .study-subjects summary { cursor: pointer; font-weight: 750; }
-.study-subjects > .subject-list { margin-top: .65rem; }
-.study-subjects > .subject-list > li:first-child { border-top: 1px solid var(--border); }
-.study-deadlines .empty-state { font-size: .8rem; color: #5b6d57; }
+.study-subjects summary { cursor: pointer; font-weight: 750; }
+.study-subjects > .subject-list { display: grid; gap: .55rem; margin-top: .65rem; }
 .focus-panel { display: grid; gap: .8rem; color: var(--ink); background: var(--white); border-top: 3px solid var(--lime); }
 .focus-overview { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
 .focus-overview p { margin: 0 0 .15rem; color: var(--muted); font-size: .78rem; font-weight: 700; }
@@ -262,7 +271,7 @@ main.focus-active .focus-panel { color: #ffffff; border-color: var(--lime); back
 main.focus-active .focus-overview p, main.focus-active .focus-time { color: var(--lime); }
 main.focus-active .panel { color: #ffffff; }
 main.focus-active :is(h1, h2, h3, h4, strong, summary) { color: #ffffff; }
-main.focus-active :is(.study-deadlines, .study-subjects) .entry { color: #ffffff !important; }
+main.focus-active .study-subjects .entry { color: #ffffff !important; }
 main.focus-active small { color: var(--muted); }
 main.focus-active .text-action { color: var(--lime); }
 main.focus-active .focus-subject-picker > button { color: #ffffff; background: var(--tint); }

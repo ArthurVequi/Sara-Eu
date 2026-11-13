@@ -9,12 +9,6 @@ type Area = 'Semana' | 'Estudos' | 'Finanças'
 type Kind = 'Matéria' | 'Tema' | 'Prova' | 'Revisão' | 'Hábito' | 'Conta' | 'Entrada' | 'Gasto' | 'Conta fixa' | 'Parcela' | 'Limite' | 'Meta financeira'
 type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number; paymentFor?: string; weekday?: number; contentId?: string; habitDays?: string[]; smartReview?: boolean; goalId?: string; piggyMovement?: boolean; focusMinutes?: number }
 const areas: Area[] = ['Semana', 'Estudos', 'Finanças']
-const emptyDeadlineMessages = [
-  'Ufa! Nenhuma prova ou revisão marcada.',
-  'Nenhuma prova ou revisão. O cérebro agradece.',
-  'Sem provas nem revisões. Café por prazer, hoje.',
-  'Nenhuma prova ou revisão. Posso respirar sem culpa.',
-]
 const navIcons = [
   'M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8 M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
   'M8 2v3m8-3v3 M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M3 9h18M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01',
@@ -86,7 +80,6 @@ function App() {
   const [selectedWallet, setSelectedWallet] = useState('all')
   const [activePiggyBank, setActivePiggyBank] = useState<Entry>()
   const [piggyMenu, setPiggyMenu] = useState<string>()
-  const [deadlineMessage, setDeadlineMessage] = useState(-1)
   const [theme, setTheme] = useState('')
   const [day, setDay] = useState(linkedDay && /^\d{4}-\d{2}-\d{2}$/.test(linkedDay) ? linkedDay : today)
   const [month, setMonth] = useState(today.slice(0, 7))
@@ -98,10 +91,6 @@ function App() {
   const accounts = entries.filter(entry => entry.kind === 'Conta')
   const subjects = entries.filter(entry => entry.kind === 'Matéria')
   const financialGoals = entries.filter(entry => entry.kind === 'Meta financeira')
-  const studyDeadlines = entries
-    .filter(entry => (entry.kind === 'Prova' || entry.kind === 'Revisão') && !entry.done && entry.date && entry.date >= today)
-    .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
-    .slice(0, 3)
   const themes = entries.filter(entry => entry.kind === 'Tema' && entry.parent === subject)
   const agendaMonth = day.slice(0, 7)
   const firstDay = agendaMonth + '-01'
@@ -335,13 +324,6 @@ function App() {
   }
 
   function navigate(area: typeof tab) {
-    if (area === 'Estudos' && tab !== 'Estudos') {
-      setDeadlineMessage(previous => {
-        const count = emptyDeadlineMessages.length
-        if (previous === -1) return Math.floor(Math.random() * count)
-        return (previous + 1 + Math.floor(Math.random() * (count - 1))) % count
-      })
-    }
     setTab(area)
     setStudyActionsOpen(false)
     setFinanceActionsOpen(false)
@@ -391,22 +373,6 @@ function App() {
       </dl></section>
     </div>}
     {ready && tab === 'Estudos' && <section className="panel focus-panel"><div className="focus-overview"><div><p>Modo de estudo</p><h2>Foco</h2></div><strong className="focus-time" aria-live="polite">{formatFocusTime(focusSeconds)}</strong></div><div className="focus-controls"><FocusSubjectPicker items={subjects} value={focusSubject} onChange={setFocusSubject} />{[25, 50].map(minutes => <button key={minutes} type="button" aria-pressed={focusMinutes === minutes} onClick={() => { setFocusMinutes(minutes); setFocusSeconds(minutes * 60); setFocusRunning(false) }}>{minutes} min</button>)}<button className="primary" type="button" onClick={() => { if (!focusRunning && focusSeconds === 0) setFocusSeconds(focusMinutes * 60); setFocusRunning(running => !running) }}>{focusRunning ? 'Pausar' : 'Começar'}</button></div></section>}
-    {ready && tab === 'Estudos' && <details className="panel study-deadlines" open>
-      <summary>Próximos prazos</summary>
-      {studyDeadlines.length ? <ul>{studyDeadlines.map(entry => <li key={entry.id}>
-        <button className="entry" onClick={() => {
-          setSubject(entry.parent ?? '')
-          setTheme(entry.contentId ?? '')
-          setStudyActionsOpen(false)
-          setEditing(entry)
-        }}>
-          <strong>{entry.title}</strong>
-          <small>{[entry.kind, weekDayLabel.format(new Date(entry.date!)),
-            subjects.find(item => item.id === entry.parent)?.title,
-            entries.find(item => item.id === entry.contentId)?.title].filter(Boolean).join(' · ')}</small>
-        </button>
-      </li>)}</ul> : <p className="empty-state">{emptyDeadlineMessages[Math.max(0, deadlineMessage)]}</p>}
-    </details>}
     {ready && tab !== 'Início' && <section className="panel">
       {tab !== 'Estudos' && <>
       {tab === 'Semana' && <div className="toolbar"><h2>Calendário</h2>
@@ -442,16 +408,17 @@ function App() {
       </section>}
       {tab === 'Estudos' && <details className="study-subjects" open>
         <summary>Matérias</summary>
-        {subjects.length ? <ul className="subject-list">{subjects.map(item => <li key={item.id}>
-        <div className="subject-row"><button className="entry subject-toggle" aria-expanded={subject === item.id} onClick={() => {
+        {subjects.length ? <ul className="subject-list">{subjects.map(item => <li className="study-subject-card" key={item.id}>
+        <button className="entry subject-toggle subject-card-trigger" aria-expanded={subject === item.id} onClick={() => {
           setSubject(subject === item.id ? '' : item.id)
           setTheme('')
         }}>
+          <span className="subject-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 10 9-5 9 5-9 5zM7 12v5c0 1.5 2.2 3 5 3s5-1.5 5-3v-5" /></svg></span>
+          <span className="subject-card-title"><strong>{item.title}</strong><small>{`${entries.filter(entry => entry.kind === 'Tema' && entry.parent === item.id).length} conteúdos${item.focusMinutes ? ` · ${item.focusMinutes} min de foco` : ''}`}</small></span>
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
-          <strong>{item.title}</strong>
         </button>
-        <StudyRowActions title={item.title} onEdit={() => setEditing(item)} onRemove={() => void remove(item)} /></div>
         {subject === item.id && <div className="subject-content">
+          <div className="subject-card-actions"><button type="button" onClick={() => setEditing(item)}>Editar matéria</button><button type="button" onClick={() => void remove(item)}>Excluir</button></div>
           {themes.length > 0 && <ul className="subject-list">{themes.map(content => <li key={content.id}>
             <div className="subject-row"><button type="button" className="entry subject-toggle" aria-expanded={theme === content.id}
               onClick={() => setTheme(theme === content.id ? '' : content.id)}>
