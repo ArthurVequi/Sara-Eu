@@ -7,6 +7,7 @@
   font-display: swap;
 }
 :root { --page-background: #edf4e9; font-family: "Bricolage Grotesque", system-ui, sans-serif; color: var(--ink); background: var(--page-background); }
+html { touch-action: manipulation; }
 * { box-sizing: border-box; }
 body { margin: 0; }
 main { width: min(100%, 62rem); margin: auto; padding: 1.25rem 1rem max(2rem, env(safe-area-inset-bottom)); }
@@ -15,7 +16,7 @@ header, .toolbar { display: flex; align-items: center; justify-content: space-be
 .badge { font-size: .8rem; background: var(--tint); padding: .45rem .7rem; border-radius: 2rem; }
 nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; margin: 1rem 0; }
 button, input { font: inherit; }
-button { cursor: pointer; border: 1px solid var(--border); background: var(--white); color: inherit; border-radius: .75rem; min-height: 44px; padding: .45rem .55rem; }
+button { cursor: pointer; border: 1px solid var(--border); background: var(--white); color: inherit; border-radius: .75rem; min-height: 44px; padding: .45rem .55rem; touch-action: manipulation; }
 button[aria-current], button[aria-pressed="true"] { background: var(--lime); color: var(--forest); font-weight: 700; }
 .primary { color: white; background: var(--forest); border-color: var(--forest); }
 .hero { background: var(--forest); color: var(--white); border-radius: 1.5rem; padding: 1.25rem; margin-bottom: 1rem; }
@@ -91,7 +92,7 @@ select { font: inherit; }
   color: var(--ink);
   background: var(--page-background);
 }
-main { max-width: 60rem; padding-inline: clamp(1rem, 4vw, 2rem); }
+main { --page-gutter: clamp(1rem, 4vw, 2rem); max-width: 60rem; padding-inline: var(--page-gutter); }
 .app-header { margin-bottom: .65rem; }
 .brand { display: inline-flex; align-items: center; gap: .5rem; letter-spacing: -.035em; }
 .brand-mark { display: grid; place-items: center; width: 2rem; height: 2rem; flex: none; }
@@ -132,6 +133,7 @@ main { max-width: 60rem; padding-inline: clamp(1rem, 4vw, 2rem); }
 button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--forest); outline-offset: 2px; }
 @media (max-width: 600px) {
   main { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+  main > .panel { margin-inline: calc(-1 * var(--page-gutter)); padding-inline: var(--page-gutter); border: 0; border-radius: 0; box-shadow: none; }
   .dashboard {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "today" "studies" "finance";
