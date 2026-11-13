@@ -36,6 +36,7 @@ const financeActionGroups = {
   Entrada: ['Entrada'],
   'Saída': ['Gasto', 'Conta fixa', 'Parcela'],
 } as const
+const expenseCategories = ['Mercado', 'Alimentação', 'Farmácia', 'Lazer', 'Transporte', 'Outros'] as const
 type Snapshot = { version: number; entries: Entry[] }
 const db = new Dexie(cloud ? 'organiza-ai-shared' : 'organiza-ai') as Dexie & {
   entries: Table<Entry, string>
@@ -301,16 +302,14 @@ function App() {
 
   function financeList(items: Entry[]) {
     return items.length ? <ul className="finance-entries">{items.map(entry => <li key={entry.id}>
-      <time className="finance-entry-date" dateTime={entry.date} aria-label={entry.date ? `Data: ${entry.date}` : undefined}>
-        {entry.date ? `${entry.date.slice(8, 10)}/${entry.date.slice(5, 7)}` : ''}
-      </time>
+      <span className="finance-entry-icon" aria-hidden="true"><ExpenseCategoryIcon category={entry.category} kind={entry.kind} /></span>
       <button className="entry finance-entry" onClick={() => setEditing(entry)}>
         <strong>{entry.title}</strong>
         <small>{entry.kind ?? 'Gasto'}</small>
       </button>
-      <strong className="finance-entry-value">{money.format(entry.kind === 'Conta'
+      <span className="finance-entry-value"><strong>{money.format(entry.kind === 'Conta'
         ? (entry.amount ?? 0) + entries.filter(item => item.kind === 'Entrada' && item.parent === entry.id && item.date?.startsWith(month)).reduce((sum, item) => sum + (item.amount ?? 0), 0)
-        : entry.amount ?? 0)}</strong>
+        : entry.amount ?? 0)}</strong>{entry.date && <time className="finance-entry-date" dateTime={entry.date}>{`${entry.date.slice(8, 10)}/${entry.date.slice(5, 7)}`}</time>}</span>
     </li>)}</ul> : <p className="empty-state">Nenhum lançamento neste mês.</p>
   }
 
@@ -585,7 +584,7 @@ function App() {
         <option value="">Selecionar</option>{accounts.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
       </select></label> : <div className="no-account"><strong>Onde</strong><p>Você ainda não tem uma carteira.</p><button type="button" onClick={() => void createInitialWallet()}>Criar carteira</button></div>)}
       {!isPiggyMovement && ['Entrada', 'Gasto'].includes(editing.kind ?? '') && <SubjectPicker label="Cofrinho" items={financialGoals} value={editing.goalId} onChange={goalId => setEditing({ ...editing, goalId })} />}
-      {editing.area === 'Finanças' && ['Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && !editing.goalId && <label>Categoria<input value={editing.category ?? ''} onChange={event => setEditing({ ...editing, category: event.target.value })} /></label>}
+      {editing.area === 'Finanças' && ['Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && !editing.goalId && <CategoryPicker value={editing.category} onChange={category => setEditing({ ...editing, category })} />}
       {editing.kind === 'Parcela' && <label>Número de parcelas<input required type="number" min="2" step="1" value={editing.installments ?? ''} onChange={event => setEditing({ ...editing, installments: event.target.valueAsNumber || undefined })} /></label>}
       {editing.area !== 'Semana' && editing.area !== 'Finanças' && <label>{editing.area === 'Estudos' ? 'Descrição (opcional)' : 'Detalhes'}<input value={editing.detail} onChange={event => setEditing({ ...editing, detail: event.target.value })} /></label>}
       {editing.kind === 'Matéria' && <SubjectWeekday value={editing.weekday} onChange={weekday => setEditing({ ...editing, weekday })} />}
@@ -672,6 +671,29 @@ function ItemEditor({ modal, onCancel, children }: { modal: boolean; onCancel: (
   if (!modal) return children
   return <dialog ref={dialog} className="study-editor-dialog" aria-labelledby="item-editor-title"
     onCancel={event => { event.preventDefault(); onCancel() }}>{children}</dialog>
+}
+
+function ExpenseCategoryIcon({ category, kind, size = 18 }: { category?: string; kind?: Kind; size?: number }) {
+  const props = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+  if (kind === 'Entrada') return <svg {...props}><path d="M5 12h14m-7-7v14" /><path d="M4 5h16v14H4z" /></svg>
+  if (kind === 'Conta fixa') return <svg {...props}><path d="M5 3h14v18l-3-2l-2 2l-2-2l-2 2l-3-2zM9 7h6m-6 4h6" /></svg>
+  if (kind === 'Parcela') return <svg {...props}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h2" /></svg>
+  if (category === 'Mercado') return <svg {...props}><path d="M6.331 8H17.67a2 2 0 0 1 1.977 2.304l-1.255 8.152A3 3 0 0 1 15.426 21H8.574a3 3 0 0 1-2.965-2.544l-1.255-8.152A2 2 0 0 1 6.331 8" /><path d="M9 11V6a3 3 0 0 1 6 0v5" /></svg>
+  if (category === 'Alimentação') return <svg {...props}><path d="M19 3v12h-5c-.023-3.681.184-7.406 5-12m0 12v6h-1v-3M8 4v17M5 4v3a3 3 0 1 0 6 0V4" /></svg>
+  if (category === 'Farmácia') return <svg {...props}><path d="M13 3a1 1 0 0 1 1 1v4.535l3.928-2.267a1 1 0 0 1 1.366.366l1 1.732a1 1 0 0 1-.366 1.366L16.001 12l3.927 2.269a1 1 0 0 1 .366 1.366l-1 1.732a1 1 0 0 1-1.366.366L14 15.464V20a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-4.536l-3.928 2.268a1 1 0 0 1-1.366-.366l-1-1.732a1 1 0 0 1 .366-1.366L7.999 12L4.072 9.732a1 1 0 0 1-.366-1.366l1-1.732a1 1 0 0 1 1.366-.366L10 8.535V4a1 1 0 0 1 1-1z" /></svg>
+  if (category === 'Lazer') return <svg {...props}><path d="M17.553 16.75a7.5 7.5 0 0 0-10.606 0M18 3.804A6 6 0 0 0 9.804 6l10.392 6A6 6 0 0 0 18 3.804M16.732 10C18.39 7.13 18.957 4.356 18 3.804S14.925 5.13 13.268 8M15 9l-3 5.196M3 19.25A2.4 2.4 0 0 1 4 19a2.4 2.4 0 0 1 2 1a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2-1a2.4 2.4 0 0 1 2-1a2.4 2.4 0 0 1 2 1a2.4 2.4 0 0 0 2 1a2.4 2.4 0 0 0 2-1a2.4 2.4 0 0 1 2-1a2.4 2.4 0 0 1 1 .25" /></svg>
+  if (category === 'Transporte') return <svg {...props}><path d="M5 17h14l-1.5-8h-11zM7 17v2m10-2v2M4 10l1-5h14l1 5M7 13h.01M17 13h.01" /></svg>
+  return <svg {...props}><path d="M4 12a1 1 0 1 0 2 0a1 1 0 1 0-2 0m7 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0m7 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0" /></svg>
+}
+
+function CategoryPicker({ value, onChange }: { value?: string; onChange: (category?: string) => void }) {
+  const dialog = useRef<HTMLDialogElement>(null)
+  const choose = (category?: string) => { onChange(category); dialog.current?.close() }
+  return <div className="commitment-date category-picker">
+    <span>Categoria</span>
+    <button type="button" aria-label="Selecionar categoria" aria-haspopup="dialog" onClick={() => dialog.current?.showModal()}>{value ? <><ExpenseCategoryIcon category={value} /><span>{value}</span></> : 'Selecionar categoria'}</button>
+    <dialog ref={dialog} className="date-dialog weekday-dialog" aria-label="Selecionar categoria"><h2>Categoria</h2><div>{expenseCategories.map(category => <button key={category} type="button" className="category-choice" aria-pressed={value === category} onClick={() => choose(category)}><ExpenseCategoryIcon category={category} /><span>{category}</span></button>)}</div><button type="button" onClick={() => dialog.current?.close()}>Cancelar</button></dialog>
+  </div>
 }
 
 function SubjectPicker({ label = 'Matéria', items, value, onChange }: { label?: string; items: Entry[]; value?: string; onChange: (id?: string) => void }) {

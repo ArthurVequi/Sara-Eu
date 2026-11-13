@@ -203,10 +203,12 @@ li > input[type="checkbox"]:checked::before {
 .finance-action-groups svg { flex: none; }
 .finance-action-types button { min-width: 10.25rem; }
 .finance-entries > li { display: grid; grid-template-columns: 2.2rem minmax(0, 1fr) max-content; align-items: center; gap: .45rem; min-width: 0; }
-.finance-entry-date { min-height: 1.25rem; color: var(--muted); font-size: .78rem; font-variant-numeric: tabular-nums; }
+.finance-entry-icon { display: grid; width: 2.2rem; height: 2.2rem; place-items: center; border-radius: .7rem; color: var(--forest); background: var(--tint); }
+.finance-entry-date { color: var(--muted); font-size: .7rem; font-variant-numeric: tabular-nums; }
 .finance-entries .finance-entry { width: 100%; min-width: 0; overflow: hidden; }
 .finance-entry strong, .finance-entry small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.finance-entry-value { font-size: clamp(.82rem, 3.5vw, 1rem); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.finance-entry-value { display: grid; justify-items: end; gap: .1rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.finance-entry-value strong { font-size: clamp(.82rem, 3.5vw, 1rem); }
 main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
 @media (max-width: 600px) {
   .study-actions, .finance-actions, .quick-actions { bottom: calc(5rem + env(safe-area-inset-bottom)); }
@@ -235,6 +237,8 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 .subject-content > label, .subject-content > .panel { margin-top: .65rem; }
 .weekday-dialog > div { display: grid; gap: .3rem; margin-top: .65rem; }
 .weekday-dialog > div button { text-align: left; }
+.category-picker > button, .category-choice { display: flex; align-items: center; justify-content: flex-start; gap: .55rem; }
+.category-choice svg { flex: none; color: var(--forest); }
 .subject-picker { max-height: min(32rem, 85dvh); }
 .subject-picker button { overflow-wrap: anywhere; }
 .study-deadlines summary, .study-subjects summary { cursor: pointer; font-weight: 750; }
