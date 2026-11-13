@@ -230,7 +230,8 @@ li > input[type="checkbox"]:checked::before {
   transform: translateY(-1px) rotate(45deg);
 }
 .study-actions, .finance-actions, .quick-actions { position: fixed; z-index: 9; right: max(1rem, env(safe-area-inset-right)); bottom: calc(1rem + env(safe-area-inset-bottom)); display: grid; justify-items: end; gap: .5rem; }
-.study-actions > div:not([hidden]), .finance-actions > div:not([hidden]), .quick-actions > div:not([hidden]) { display: grid; gap: .4rem; justify-items: end; }
+.study-actions > div:not([hidden]), .finance-actions > div:not([hidden]), .quick-actions > div:not([hidden]) { display: grid; gap: .4rem; justify-items: end; transform-origin: bottom right; animation: action-menu-enter .22s cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes action-menu-enter { from { opacity: 0; transform: translateY(.6rem) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .study-actions button, .finance-actions button, .quick-actions button { box-shadow: 0 4px 14px #112c0f24; }
 .study-toggle, .finance-toggle, .quick-toggle { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; }
 .study-toggle svg, .finance-toggle svg, .quick-toggle svg { transition: transform .18s ease; }
@@ -250,7 +251,7 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
   .study-actions, .finance-actions, .quick-actions { bottom: calc(5rem + env(safe-area-inset-bottom)); }
   main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) { padding-bottom: calc(9rem + env(safe-area-inset-bottom)); }
 }
-@media (prefers-reduced-motion: reduce) { .study-toggle svg, .finance-toggle svg, .quick-toggle svg { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .study-toggle svg, .finance-toggle svg, .quick-toggle svg { transition: none; } .study-actions > div:not([hidden]), .finance-actions > div:not([hidden]), .quick-actions > div:not([hidden]) { animation: none; } }
 .study-editor-dialog { width: min(32rem, calc(100% - 2rem)); max-height: 85dvh; padding: 0; border: 0; border-radius: 1.25rem; color: var(--ink); background: var(--white); }
 .study-editor-dialog::backdrop { background: #112c0f55; backdrop-filter: blur(5px); }
 .study-editor-dialog > .panel { margin: 0; border: 0; box-shadow: none; padding: 1.25rem; }
