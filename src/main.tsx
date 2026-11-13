@@ -28,6 +28,24 @@ const examples: Entry[] = [
   { id: 'demo-account', area: 'Finanças', title: 'Carteira', detail: 'Saldo informado', kind: 'Conta', amount: 120000, color: '#112c0f' },
   { id: 'demo-expense', area: 'Finanças', title: 'Material de estudo', detail: '', kind: 'Gasto', category: 'Estudos', parent: 'demo-account', date: today, amount: 18500 },
 ]
+const simulationEntries: Entry[] = [
+  { id: 'sim-wallet-daily', area: 'Finanças', title: 'Carteira diária', detail: 'Gastos do dia a dia', kind: 'Conta', amount: 85000, color: '#137b6b' },
+  { id: 'sim-salary', area: 'Finanças', title: 'Salário', detail: '', kind: 'Entrada', parent: 'demo-account', date: shiftDay(today, -8), amount: 120000 },
+  { id: 'sim-market', area: 'Finanças', title: 'Compras da semana', detail: '', kind: 'Gasto', category: 'Mercado', parent: 'sim-wallet-daily', date: shiftDay(today, -3), amount: 24500 },
+  { id: 'sim-food', area: 'Finanças', title: 'Jantar', detail: '', kind: 'Gasto', category: 'Alimentação', parent: 'sim-wallet-daily', date: shiftDay(today, -2), amount: 12800 },
+  { id: 'sim-pharmacy', area: 'Finanças', title: 'Farmácia', detail: '', kind: 'Gasto', category: 'Farmácia', parent: 'sim-wallet-daily', date: shiftDay(today, -5), amount: 7600 },
+  { id: 'sim-leisure', area: 'Finanças', title: 'Cinema', detail: '', kind: 'Gasto', category: 'Lazer', parent: 'sim-wallet-daily', date: shiftDay(today, -1), amount: 5400 },
+  { id: 'sim-transport', area: 'Finanças', title: 'Transporte', detail: '', kind: 'Gasto', category: 'Transporte', parent: 'sim-wallet-daily', date: shiftDay(today, -4), amount: 6200 },
+  { id: 'sim-piggy', area: 'Finanças', title: 'Viagem', detail: '', kind: 'Meta financeira', amount: 150000 },
+  { id: 'sim-piggy-entry', area: 'Finanças', title: 'Adicionar ao cofrinho Viagem', detail: '', kind: 'Entrada', parent: 'demo-account', goalId: 'sim-piggy', piggyMovement: true, date: shiftDay(today, -6), amount: 7500 },
+  { id: 'sim-subject', area: 'Estudos', title: 'Farmacologia', detail: '', kind: 'Matéria' },
+  { id: 'sim-theme', area: 'Estudos', title: 'Antibióticos', detail: 'Mecanismos de ação e resistência bacteriana', kind: 'Tema', parent: 'sim-subject' },
+  { id: 'sim-review', area: 'Estudos', title: 'Revisar antibióticos', detail: 'Revisão programada', kind: 'Revisão', parent: 'sim-subject', contentId: 'sim-theme', date: shiftDay(today, 2) },
+  { id: 'sim-exam', area: 'Estudos', title: 'Prova de Anatomia', detail: 'Sistema cardiovascular', kind: 'Prova', parent: 'demo-study', date: shiftDay(today, 5) },
+  { id: 'sim-completed-task', area: 'Semana', title: 'Organizar material da aula', detail: 'Tarefa concluída', date: shiftDay(today, -1), done: true, completedAt: new Date(Date.now() - 86_400_000).toISOString() },
+  { id: 'sim-focus-1', area: 'Estudos', title: 'Sessão de foco', detail: '', kind: 'Sessão de foco', parent: 'sim-subject', date: shiftDay(today, -2), focusMinutes: 25 },
+  { id: 'sim-focus-2', area: 'Estudos', title: 'Sessão de foco', detail: '', kind: 'Sessão de foco', parent: 'demo-study', date: shiftDay(today, -1), focusMinutes: 50 },
+]
 const financeActionGroups = {
   Entrada: ['Entrada'],
   'Saída': ['Gasto', 'Conta fixa', 'Parcela'],
@@ -242,9 +260,14 @@ function App() {
 
   useEffect(() => {
     db.transaction('rw', db.entries, db.settings, async () => {
-      if (await db.settings.get('initialized')) return
-      if (!cloud) await db.entries.bulkAdd(examples)
-      await db.settings.add({ id: 'initialized' })
+      if (!cloud && !(await db.settings.get('initialized'))) {
+        await db.entries.bulkAdd(examples)
+        await db.settings.add({ id: 'initialized' })
+      }
+      if (!cloud && !(await db.settings.get('simulation-v1'))) {
+        await db.entries.bulkPut(simulationEntries)
+        await db.settings.add({ id: 'simulation-v1' })
+      }
     }).then(refresh).then(() => setReady(true)).catch(() => setError('Não foi possível abrir o armazenamento deste aparelho.'))
   }, [])
 
