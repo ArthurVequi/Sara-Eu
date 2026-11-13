@@ -1,7 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { cloud } from './cloud'
+import { cloud, enableDeviceNotifications, enableMorningPush } from './cloud'
 import './style.css'
 import { SplashScreen } from './SplashScreen'
 
@@ -41,6 +41,22 @@ db.version(1).stores({ entries: 'id, area', settings: 'id' })
 const money = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', currencyDisplay: 'code' })
 const compactMoney = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const walletColors = ['#123d2d', '#137b6b', '#3357b8', '#775291', '#a85f2a']
+const focusNotificationMessages = [
+  { title: 'Foco concluído', body: '{minutes} minutos feitos. Seu cérebro trabalhou bonito.' },
+  { title: 'Sessão entregue', body: '{subject} recebeu sua atenção. O conteúdo ficou um pouco menos assustador.' },
+  { title: 'Tempo bem usado', body: 'Mais {minutes} min no bolso. O futuro você agradece.' },
+  { title: 'Missão cumprida', body: 'Você venceu mais uma disputa contra as distrações.' },
+  { title: 'Pausa liberada', body: 'Foco encerrado. Levante, alongue e volte antes que o sofá faça amizade.' },
+]
+
+async function showFocusNotification(minutes: number, subject?: string) {
+  if (!('Notification' in window) || Notification.permission !== 'granted' || !('serviceWorker' in navigator)) return
+  const message = focusNotificationMessages[Math.floor(Math.random() * focusNotificationMessages.length)]
+  const subjectName = subject || 'Sua matéria'
+  const body = message.body.replaceAll('{minutes}', String(minutes)).replaceAll('{subject}', subjectName)
+  const registration = await navigator.serviceWorker.ready
+  await registration.showNotification(message.title, { body, tag: 'focus-complete', data: { url: '/?tab=Estudos' } })
+}
 
 function occursOn(entry: Entry, day: string) {
   if (entry.kind === 'Matéria') return entry.weekday === new Date(day).getUTCDay()
@@ -75,6 +91,7 @@ function App() {
   const [message, setMessage] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [notifications, setNotifications] = useState<NotificationSettings>({ studies: true, agenda: true, finances: true })
+  const [deviceNotifications, setDeviceNotifications] = useState<NotificationPermission | 'unsupported'>(() => typeof Notification === 'undefined' ? 'unsupported' : Notification.permission)
   const [conflict, setConflict] = useState<Snapshot>()
   const [subject, setSubject] = useState('')
   const [studyActionsOpen, setStudyActionsOpen] = useState(false)
@@ -173,11 +190,12 @@ function App() {
       if (seconds > 1) return seconds - 1
       window.clearInterval(timer)
       setFocusRunning(false)
+      if (notifications.studies) void showFocusNotification(focusMinutes, entries.find(item => item.id === focusSubject)?.title)
       if (focusSubject) void db.entries.update(focusSubject, { focusMinutes: (entries.find(item => item.id === focusSubject)?.focusMinutes ?? 0) + focusMinutes }).then(refresh)
       return 0
     }), 1_000)
     return () => window.clearInterval(timer)
-  }, [focusRunning, focusMinutes, focusSubject, entries])
+  }, [focusRunning, focusMinutes, focusSubject, entries, notifications.studies])
 
   async function refresh() {
     setEntries(await db.entries.toArray())
@@ -212,6 +230,16 @@ function App() {
       await db.settings.put({ id: 'preferences', notifications: next })
     } catch {
       setError('Não foi possível salvar as notificações.')
+    }
+  }
+
+  async function activateDeviceNotifications() {
+    try {
+      await enableDeviceNotifications()
+      setDeviceNotifications('granted')
+      try { await enableMorningPush() } catch { /* O foco continua funcionando neste aparelho sem push remoto. */ }
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Não foi possível ativar as notificações.')
     }
   }
 
@@ -561,7 +589,7 @@ function App() {
       </button>
     </div>}
     {activePiggyBank && <ItemEditor modal onCancel={() => setActivePiggyBank(undefined)}><section className="panel piggy-movement" aria-label="Movimentar cofrinho"><h1 id="item-editor-title">{activePiggyBank.title}</h1><p>Separado: <strong>{money.format(piggyBalance(activePiggyBank.id))}</strong></p><div><button type="button" className="primary" onClick={() => openPiggyMovement(activePiggyBank, 'Entrada')}>Adicionar dinheiro</button><button type="button" onClick={() => openPiggyMovement(activePiggyBank, 'Gasto')}>Retirar dinheiro</button></div><button type="button" onClick={() => setActivePiggyBank(undefined)}>Cancelar</button></section></ItemEditor>}
-    {settingsOpen && <ItemEditor modal onCancel={() => setSettingsOpen(false)}><section className="panel settings-panel" aria-label="Configurações"><div className="settings-heading"><span className="settings-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06l-2.12 2.12l-.06-.06a1.7 1.7 0 0 0-1.88-.34a1.7 1.7 0 0 0-1.04 1.56V20h-3v-.09A1.7 1.7 0 0 0 10.66 18.35a1.7 1.7 0 0 0-1.88.34l-.06.06L6.6 16.63l.06-.06A1.7 1.7 0 0 0 7 14.69a1.7 1.7 0 0 0-1.56-1.04h-.09v-3h.09A1.7 1.7 0 0 0 7 9.61a1.7 1.7 0 0 0-.34-1.88L6.6 7.67l2.12-2.12l.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.7 4.39V4.3h3v.09a1.7 1.7 0 0 0 1.04 1.56a1.7 1.7 0 0 0 1.88-.34l.06-.06l2.12 2.12l-.06.06A1.7 1.7 0 0 0 19.4 9.61a1.7 1.7 0 0 0 1.56 1.04h.09v3h-.09A1.7 1.7 0 0 0 19.4 15" /></svg></span><div><h1 id="item-editor-title">Configurações</h1><p>Notificações</p></div></div><div className="notification-options">{([{ key: 'studies', title: 'Estudos', detail: 'Revisões e provas programadas' }, { key: 'agenda', title: 'Agenda', detail: 'Compromissos próximos e atrasados' }, { key: 'finances', title: 'Finanças', detail: 'Contas e parcelas a vencer' }] as const).map(option => <label className="notification-option" key={option.key}><span><strong>{option.title}</strong><small>{option.detail}</small></span><input type="checkbox" checked={notifications[option.key]} onChange={() => void updateNotification(option.key)} /></label>)}</div><button type="button" onClick={() => setSettingsOpen(false)}>Concluir</button></section></ItemEditor>}
+    {settingsOpen && <ItemEditor modal onCancel={() => setSettingsOpen(false)}><section className="panel settings-panel" aria-label="Configurações"><div className="settings-heading"><span className="settings-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06l-2.12 2.12l-.06-.06a1.7 1.7 0 0 0-1.88-.34a1.7 1.7 0 0 0-1.04 1.56V20h-3v-.09A1.7 1.7 0 0 0 10.66 18.35a1.7 1.7 0 0 0-1.88.34l-.06.06L6.6 16.63l.06-.06A1.7 1.7 0 0 0 7 14.69a1.7 1.7 0 0 0-1.56-1.04h-.09v-3h.09A1.7 1.7 0 0 0 7 9.61a1.7 1.7 0 0 0-.34-1.88L6.6 7.67l2.12-2.12l.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.7 4.39V4.3h3v.09a1.7 1.7 0 0 0 1.04 1.56a1.7 1.7 0 0 0 1.88-.34l.06-.06l2.12 2.12l-.06.06A1.7 1.7 0 0 0 19.4 9.61a1.7 1.7 0 0 0 1.56 1.04h.09v3h-.09A1.7 1.7 0 0 0 19.4 15" /></svg></span><div><h1 id="item-editor-title">Configurações</h1><p>Notificações</p></div></div><section className="device-notification"><div><strong>Notificações do dispositivo</strong><small>{deviceNotifications === 'granted' ? 'Ativadas neste aparelho' : 'Ative para receber avisos como os de outros apps'}</small></div>{deviceNotifications === 'granted' ? <span className="device-notification-status">Ativas</span> : <button type="button" className="primary" onClick={() => void activateDeviceNotifications()}>Ativar</button>}</section><div className="notification-options">{([{ key: 'studies', title: 'Estudos', detail: 'Revisões, provas e foco concluído' }, { key: 'agenda', title: 'Agenda', detail: 'Compromissos próximos e atrasados' }, { key: 'finances', title: 'Finanças', detail: 'Contas e parcelas a vencer' }] as const).map(option => <label className="notification-option" key={option.key}><span><strong>{option.title}</strong><small>{option.detail}</small></span><input type="checkbox" checked={notifications[option.key]} onChange={() => void updateNotification(option.key)} /></label>)}</div><button type="button" onClick={() => setSettingsOpen(false)}>Concluir</button></section></ItemEditor>}
     {editing && <ItemEditor key={editing.id} modal onCancel={() => { setEditing(undefined); setError('') }}>
       <section className={fullEditor ? 'panel commitment-editor' : 'panel'} aria-label="Editar item"><form onSubmit={save}>
       {editing.area === 'Semana' && <h1 id="item-editor-title">{editing.kind === 'Hábito' ? entries.some(item => item.id === editing.id) ? 'Editar hábito' : 'Novo hábito' : entries.some(item => item.id === editing.id) ? 'Editar compromisso' : 'Novo compromisso'}</h1>}
