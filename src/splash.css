@@ -5,11 +5,37 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  background: var(--forest);
+  background: linear-gradient(155deg, #244a20 0%, var(--forest) 48%, #0c230e 100%);
   color: #fff;
 }
 
+.splash-screen::before,
+.splash-screen::after {
+  content: '';
+  position: absolute;
+  width: clamp(17rem, 74vw, 34rem);
+  aspect-ratio: 1;
+  border: 1px solid #c9fa6a40;
+  border-radius: 26%;
+  background: linear-gradient(145deg, #c9fa6a1a, #c9fa6a05 78%);
+  box-shadow: 0 0 0 .9rem #c9fa6a0d, 0 0 0 2rem #c9fa6a07;
+  transform: rotate(-18deg);
+  pointer-events: none;
+}
+
+.splash-screen::before {
+  top: -9rem;
+  right: -8.5rem;
+}
+
+.splash-screen::after {
+  bottom: -11rem;
+  left: -8rem;
+}
+
 .splash-brand {
+  position: relative;
+  z-index: 1;
   display: grid;
   justify-items: center;
   gap: .85rem;
