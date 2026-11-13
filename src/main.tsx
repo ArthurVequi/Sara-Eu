@@ -7,7 +7,7 @@ import { SplashScreen } from './SplashScreen'
 
 type Area = 'Semana' | 'Estudos' | 'Finanças'
 type Kind = 'Matéria' | 'Tema' | 'Prova' | 'Revisão' | 'Hábito' | 'Conta' | 'Entrada' | 'Gasto' | 'Conta fixa' | 'Parcela' | 'Limite' | 'Meta financeira'
-type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number; paymentFor?: string; weekday?: number; contentId?: string; habitDays?: string[]; smartReview?: boolean; goalId?: string; focusMinutes?: number }
+type Entry = { id: string; area: Area; title: string; detail: string; done?: boolean; date?: string; startTime?: string; endTime?: string; weekly?: boolean; amount?: number; kind?: Kind; parent?: string; category?: string; color?: string; installments?: number; paymentFor?: string; weekday?: number; contentId?: string; habitDays?: string[]; smartReview?: boolean; goalId?: string; piggyMovement?: boolean; focusMinutes?: number }
 const areas: Area[] = ['Semana', 'Estudos', 'Finanças']
 const emptyDeadlineMessages = [
   'Ufa! Nenhuma prova ou revisão marcada.',
@@ -114,6 +114,7 @@ function App() {
   const selectedAccount = accounts.find(account => account.id === selectedWallet)
   const financeView = selectedAccount ? walletFinanceSummary(selectedAccount, month) : { available, reserved, spent }
   const piggyTotal = financialGoals.reduce((sum, goal) => sum + piggyBalance(goal.id), 0)
+  const isPiggyMovement = !!editing?.piggyMovement
 
   async function synchronize(choice?: 'local' | 'remote') {
     if (!cloud || !navigator.onLine) return
@@ -331,7 +332,7 @@ function App() {
 
   function openPiggyMovement(goal: Entry, kind: 'Entrada' | 'Gasto') {
     setActivePiggyBank(undefined)
-    setEditing({ id: crypto.randomUUID(), title: kind === 'Entrada' ? `Adicionar ao cofrinho ${goal.title}` : `Retirar do cofrinho ${goal.title}`, detail: '', area: 'Finanças', kind, goalId: goal.id, date: today, parent: selectedAccount?.id ?? accounts[0]?.id })
+    setEditing({ id: crypto.randomUUID(), title: kind === 'Entrada' ? `Adicionar ao cofrinho ${goal.title}` : `Retirar do cofrinho ${goal.title}`, detail: '', area: 'Finanças', kind, goalId: goal.id, piggyMovement: true, date: today })
   }
 
   function navigate(area: typeof tab) {
@@ -571,25 +572,25 @@ function App() {
       <section className={fullEditor ? 'panel commitment-editor' : 'panel'} aria-label="Editar item"><form onSubmit={save}>
       {editing.area === 'Semana' && <h1 id="item-editor-title">{editing.kind === 'Hábito' ? entries.some(item => item.id === editing.id) ? 'Editar hábito' : 'Novo hábito' : entries.some(item => item.id === editing.id) ? 'Editar compromisso' : 'Novo compromisso'}</h1>}
       {editing.area === 'Estudos' && <h1 id="item-editor-title">{entries.some(item => item.id === editing.id) ? `Editar ${editing.kind === 'Tema' ? 'conteúdo' : editing.kind?.toLowerCase() ?? 'item'}` : editing.kind === 'Tema' ? 'Novo conteúdo' : `Nova ${editing.kind?.toLowerCase() ?? 'matéria'}`}</h1>}
-      {editing.area === 'Finanças' && <h1 id="item-editor-title">{editing.kind === 'Entrada' ? 'Adicionar saldo' : editing.kind === 'Meta financeira' ? entries.some(item => item.id === editing.id) ? 'Editar cofrinho' : 'Novo cofrinho' : entries.some(item => item.id === editing.id) ? 'Editar lançamento' : editing.kind === 'Conta fixa' ? 'Nova conta fixa' : editing.kind === 'Parcela' ? 'Nova parcela' : editing.kind === 'Limite' ? 'Limite mensal' : 'Novo gasto'}</h1>}
+      {editing.area === 'Finanças' && <h1 id="item-editor-title">{isPiggyMovement ? `${editing.kind === 'Entrada' ? 'Adicionar ao' : 'Retirar do'} cofrinho ${financialGoals.find(goal => goal.id === editing.goalId)?.title ?? ''}` : editing.kind === 'Entrada' ? 'Adicionar saldo' : editing.kind === 'Meta financeira' ? entries.some(item => item.id === editing.id) ? 'Editar cofrinho' : 'Novo cofrinho' : entries.some(item => item.id === editing.id) ? 'Editar lançamento' : editing.kind === 'Conta fixa' ? 'Nova conta fixa' : editing.kind === 'Parcela' ? 'Nova parcela' : editing.kind === 'Limite' ? 'Limite mensal' : 'Novo gasto'}</h1>}
       {error && <p role="alert">{error}</p>}
-      {(editing.area !== 'Finanças' || editing.kind !== 'Entrada') && <label>{editing.kind === 'Matéria' ? 'Nome da matéria' : editing.kind === 'Tema' ? 'Nome do conteúdo' : editing.kind === 'Conta' ? 'Nome da conta' : editing.kind === 'Meta financeira' ? 'Nome do cofrinho' : 'Título'}<input autoFocus required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>}
+      {!isPiggyMovement && (editing.area !== 'Finanças' || editing.kind !== 'Entrada') && <label>{editing.kind === 'Matéria' ? 'Nome da matéria' : editing.kind === 'Tema' ? 'Nome do conteúdo' : editing.kind === 'Conta' ? 'Nome da conta' : editing.kind === 'Meta financeira' ? 'Nome do cofrinho' : 'Título'}<input autoFocus required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })} /></label>}
       {editing.area === 'Estudos' && editing.kind !== 'Matéria' && <SubjectPicker items={subjects} value={editing.parent}
         onChange={parent => setEditing({ ...editing, parent, contentId: parent === editing.parent ? editing.contentId : undefined })} />}
       {editing.parent && (editing.kind === 'Prova' || editing.kind === 'Revisão') && <SubjectPicker label="Conteúdo"
         items={entries.filter(item => item.kind === 'Tema' && item.parent === editing.parent)}
         value={editing.contentId} onChange={contentId => setEditing({ ...editing, contentId })} />}
       {editing.kind === 'Tema' && <label className="check"><input type="checkbox" checked={!!editing.smartReview} onChange={event => setEditing({ ...editing, smartReview: event.target.checked })} /> Programar revisões em 1, 3, 7 e 14 dias</label>}
-      {editing.area === 'Finanças' && ['Entrada', 'Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && (accounts.length ? <label>Onde<select required value={editing.parent ?? ''} onChange={event => setEditing({ ...editing, parent: event.target.value || undefined })}>
+      {editing.area === 'Finanças' && !isPiggyMovement && ['Entrada', 'Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && (accounts.length ? <label>Onde<select required value={editing.parent ?? ''} onChange={event => setEditing({ ...editing, parent: event.target.value || undefined })}>
         <option value="">Selecionar</option>{accounts.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
       </select></label> : <div className="no-account"><strong>Onde</strong><p>Você ainda não tem uma carteira.</p><button type="button" onClick={() => void createInitialWallet()}>Criar carteira</button></div>)}
-      {['Entrada', 'Gasto'].includes(editing.kind ?? '') && <SubjectPicker label="Cofrinho" items={financialGoals} value={editing.goalId} onChange={goalId => setEditing({ ...editing, goalId })} />}
+      {!isPiggyMovement && ['Entrada', 'Gasto'].includes(editing.kind ?? '') && <SubjectPicker label="Cofrinho" items={financialGoals} value={editing.goalId} onChange={goalId => setEditing({ ...editing, goalId })} />}
       {editing.area === 'Finanças' && ['Gasto', 'Conta fixa', 'Parcela'].includes(editing.kind ?? 'Gasto') && !editing.goalId && <label>Categoria<input value={editing.category ?? ''} onChange={event => setEditing({ ...editing, category: event.target.value })} /></label>}
       {editing.kind === 'Parcela' && <label>Número de parcelas<input required type="number" min="2" step="1" value={editing.installments ?? ''} onChange={event => setEditing({ ...editing, installments: event.target.valueAsNumber || undefined })} /></label>}
       {editing.area !== 'Semana' && editing.area !== 'Finanças' && <label>{editing.area === 'Estudos' ? 'Descrição (opcional)' : 'Detalhes'}<input value={editing.detail} onChange={event => setEditing({ ...editing, detail: event.target.value })} /></label>}
       {editing.kind === 'Matéria' && <SubjectWeekday value={editing.weekday} onChange={weekday => setEditing({ ...editing, weekday })} />}
       {(fullEditor || editing.kind === 'Prova' || editing.kind === 'Revisão') && <EditorDate value={editing.date} onChange={date => setEditing({ ...editing, date })} />}
-      {editing.area === 'Finanças' && editing.kind !== 'Conta' && editing.kind !== 'Meta financeira' && <EditorDate compact value={editing.date} onChange={date => setEditing({ ...editing, date })} />}
+      {editing.area === 'Finanças' && !isPiggyMovement && editing.kind !== 'Conta' && editing.kind !== 'Meta financeira' && <EditorDate compact value={editing.date} onChange={date => setEditing({ ...editing, date })} />}
       {((editing.area === 'Semana' && editing.kind !== 'Hábito') || editing.kind === 'Matéria') &&
         <label>Horário<input type="text" inputMode="numeric" placeholder="HH:MM"
           pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Digite um horário de 00:00 a 23:59"
