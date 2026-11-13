@@ -635,6 +635,40 @@ function ItemEditor({ modal, onCancel, children }: { modal: boolean; onCancel: (
     node.showModal()
     return () => node.close()
   }, [modal])
+  useEffect(() => {
+    if (!modal) return
+    const root = document.documentElement
+    const body = document.body
+    const previousRootOverflow = root.style.overflow
+    const previousBodyOverflow = body.style.overflow
+    const previousOverscroll = body.style.overscrollBehavior
+    const stopBackgroundInteraction = (event: Event) => {
+      const dialogs = Array.from(document.querySelectorAll<HTMLDialogElement>('dialog[open]'))
+      const topDialog = dialogs.at(-1)
+      if (topDialog && !topDialog.contains(event.target as Node)) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+      }
+    }
+    root.style.overflow = 'hidden'
+    body.style.overflow = 'hidden'
+    body.style.overscrollBehavior = 'none'
+    document.addEventListener('pointerdown', stopBackgroundInteraction, true)
+    document.addEventListener('click', stopBackgroundInteraction, true)
+    document.addEventListener('touchstart', stopBackgroundInteraction, { capture: true, passive: false })
+    document.addEventListener('touchmove', stopBackgroundInteraction, { capture: true, passive: false })
+    document.addEventListener('wheel', stopBackgroundInteraction, { capture: true, passive: false })
+    return () => {
+      root.style.overflow = previousRootOverflow
+      body.style.overflow = previousBodyOverflow
+      body.style.overscrollBehavior = previousOverscroll
+      document.removeEventListener('pointerdown', stopBackgroundInteraction, true)
+      document.removeEventListener('click', stopBackgroundInteraction, true)
+      document.removeEventListener('touchstart', stopBackgroundInteraction, true)
+      document.removeEventListener('touchmove', stopBackgroundInteraction, true)
+      document.removeEventListener('wheel', stopBackgroundInteraction, true)
+    }
+  }, [modal])
   if (!modal) return children
   return <dialog ref={dialog} className="study-editor-dialog" aria-labelledby="item-editor-title"
     onCancel={event => { event.preventDefault(); onCancel() }}>{children}</dialog>
