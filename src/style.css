@@ -342,6 +342,7 @@ main:has(.study-actions), main:has(.finance-actions), main:has(.quick-actions) {
 body:has(main.focus-active) { background: var(--forest); }
 main.focus-active { min-height: 100dvh; color: #ffffff; background: var(--forest); --white: #173b18; --tint: #214b22; --border: #477445; --ink: #ffffff; --muted: #d7e6d0; }
 main.focus-active .brand { color: var(--lime); }
+main.focus-active .hero { border-color: #5d8358; background: #173b18; box-shadow: inset 0 3px 0 var(--lime); }
 main.focus-active .focus-panel { color: #ffffff; border-color: var(--lime); background: #173b18; }
 main.focus-active .focus-overview p, main.focus-active .focus-time { color: var(--lime); }
 main.focus-active .panel { color: #ffffff; }
