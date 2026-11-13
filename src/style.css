@@ -116,6 +116,17 @@ main { --page-gutter: clamp(1rem, 4vw, 2rem); max-width: 60rem; padding-inline: 
 }
 .dashboard .panel { min-width: 0; margin: 0; }
 .dashboard-today { grid-area: today; border-top: 3px solid var(--lime); }
+.today-list { margin: .5rem 0 0; }
+.today-list > li { border-top: 1px solid var(--border); }
+.today-item { display: grid; grid-template-columns: 2rem minmax(0, 1fr); width: 100%; min-height: 3.65rem; align-items: center; gap: .65rem; padding: .45rem 0; border: 0; border-radius: 0; text-align: left; }
+.today-check { display: grid; width: 1.8rem; height: 1.8rem; place-items: center; border: 1.5px solid var(--muted); border-radius: .55rem; color: var(--forest); }
+.today-check svg { width: 1rem; opacity: 0; }
+.today-item strong { display: block; }
+.today-item small { margin-top: .08rem; }
+.today-list .is-done { opacity: .52; }
+.today-list .is-done strong { text-decoration: line-through; }
+.today-list .is-done .today-check { border-color: var(--lime); background: var(--lime); }
+.today-list .is-done .today-check svg { opacity: 1; }
 .dashboard-study-summary { grid-area: studies; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
 .dashboard-finance { grid-area: finance; }
 .study-summary-card { display: grid; min-width: 0; gap: .22rem; text-align: left; }
