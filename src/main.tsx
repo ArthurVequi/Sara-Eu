@@ -91,6 +91,10 @@ function App() {
   const accounts = entries.filter(entry => entry.kind === 'Conta')
   const subjects = entries.filter(entry => entry.kind === 'Matéria')
   const financialGoals = entries.filter(entry => entry.kind === 'Meta financeira')
+  const studyDeadlines = entries
+    .filter(entry => (entry.kind === 'Prova' || entry.kind === 'Revisão') && entry.date && entry.date >= today)
+    .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
+    .slice(0, 4)
   const themes = entries.filter(entry => entry.kind === 'Tema' && entry.parent === subject)
   const agendaMonth = day.slice(0, 7)
   const firstDay = agendaMonth + '-01'
@@ -373,6 +377,7 @@ function App() {
       </dl></section>
     </div>}
     {ready && tab === 'Estudos' && <section className="panel focus-panel"><div className="focus-overview"><div><p>Modo de estudo</p><h2>Foco</h2></div><strong className="focus-time" aria-live="polite">{formatFocusTime(focusSeconds)}</strong></div><div className="focus-controls"><FocusSubjectPicker items={subjects} value={focusSubject} onChange={setFocusSubject} />{[25, 50].map(minutes => <button key={minutes} type="button" aria-pressed={focusMinutes === minutes} onClick={() => { setFocusMinutes(minutes); setFocusSeconds(minutes * 60); setFocusRunning(false) }}>{minutes} min</button>)}<button className="primary" type="button" onClick={() => { if (!focusRunning && focusSeconds === 0) setFocusSeconds(focusMinutes * 60); setFocusRunning(running => !running) }}>{focusRunning ? 'Pausar' : 'Começar'}</button></div></section>}
+    {ready && tab === 'Estudos' && <section className="panel study-plan" aria-label="Plano de estudos"><div className="study-section-heading"><div><p>Plano de estudos</p><h2>Para estudar</h2></div><small>{studyDeadlines.filter(entry => !entry.done).length} pendentes</small></div>{studyDeadlines.length ? <ul className="study-plan-list">{studyDeadlines.map(entry => <li className={entry.done ? 'is-done' : ''} key={entry.id}><input type="checkbox" checked={!!entry.done} aria-label={`Concluir ${entry.title}`} onChange={() => void toggle(entry)} /><button className="entry" onClick={() => { setSubject(entry.parent ?? ''); setTheme(entry.contentId ?? ''); setEditing(entry) }}><strong>{entry.title}</strong><small>{[entry.kind, subjects.find(item => item.id === entry.parent)?.title, weekDayLabel.format(new Date(entry.date!))].filter(Boolean).join(' · ')}</small></button></li>)}</ul> : <p className="empty-state">Nenhuma prova ou revisão programada.</p>}</section>}
     {ready && tab !== 'Início' && <section className="panel">
       {tab !== 'Estudos' && <>
       {tab === 'Semana' && <div className="toolbar"><h2>Calendário</h2>
@@ -407,7 +412,7 @@ function App() {
         <h3>Sem data</h3>{list(entries.filter(item => item.area === 'Semana' && item.kind !== 'Hábito' && !item.date))}
       </section>}
       {tab === 'Estudos' && <details className="study-subjects" open>
-        <summary>Matérias</summary>
+        <summary><span>Matérias</span><small>{subjects.length}</small></summary>
         {subjects.length ? <ul className="subject-list">{subjects.map(item => <li className="study-subject-card" key={item.id}>
         <button className="entry subject-toggle subject-card-trigger" aria-expanded={subject === item.id} onClick={() => {
           setSubject(subject === item.id ? '' : item.id)
@@ -419,7 +424,7 @@ function App() {
         </button>
         {subject === item.id && <div className="subject-content">
           <div className="subject-card-actions"><button type="button" onClick={() => setEditing(item)}>Editar matéria</button><button type="button" onClick={() => void remove(item)}>Excluir</button></div>
-          {themes.length > 0 && <ul className="subject-list">{themes.map(content => <li key={content.id}>
+          {themes.length > 0 && <section className="content-group"><h3>Conteúdos</h3><ul className="content-list">{themes.map(content => <li key={content.id}>
             <div className="subject-row"><button type="button" className="entry subject-toggle" aria-expanded={theme === content.id}
               onClick={() => setTheme(theme === content.id ? '' : content.id)}>
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
@@ -430,8 +435,9 @@ function App() {
               {content.detail && <p>{content.detail}</p>}
               {entries.some(entry => entry.contentId === content.id) && list(entries.filter(entry => entry.contentId === content.id))}
             </div>}
-          </li>)}</ul>}
-          {list(entries.filter(entry => entry.parent === item.id && entry.kind !== 'Tema' && !themes.some(content => content.id === entry.contentId)), themes.length ? '' : 'Nenhum conteúdo cadastrado.')}
+          </li>)}</ul></section>}
+          {entries.some(entry => entry.parent === item.id && entry.kind !== 'Tema' && !themes.some(content => content.id === entry.contentId)) && <section className="content-group content-activities"><h3>Atividades</h3>{list(entries.filter(entry => entry.parent === item.id && entry.kind !== 'Tema' && !themes.some(content => content.id === entry.contentId)))}</section>}
+          {!themes.length && !entries.some(entry => entry.parent === item.id && entry.kind !== 'Tema') && <p className="empty-state">Nenhum conteúdo cadastrado.</p>}
         </div>}
       </li>)}</ul> : <p className="empty-state">Nenhuma matéria cadastrada.</p>}
       </details>}
